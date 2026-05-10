@@ -135,8 +135,8 @@ function LoginContent() {
       </Button>
 
       <div className="flex flex-col items-center gap-2 text-sm">
-        <span>
-          계정이 없으신가요?{" "}
+        <span className="inline-flex max-w-full flex-wrap items-baseline justify-center gap-x-1">
+          <span>계정이 없으신가요?</span>
           <Link href="/signup">
             <ZmLink>회원가입</ZmLink>
           </Link>

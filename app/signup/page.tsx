@@ -135,8 +135,8 @@ export default function SignupPage() {
       </div>
 
       <div className="flex flex-col items-center gap-2 text-sm">
-        <span>
-          이미 계정이 있으신가요?{" "}
+        <span className="inline-flex max-w-full flex-wrap items-baseline justify-center gap-x-1">
+          <span>이미 계정이 있으신가요?</span>
           <Link href="/login">
             <ZmLink>로그인</ZmLink>
           </Link>
