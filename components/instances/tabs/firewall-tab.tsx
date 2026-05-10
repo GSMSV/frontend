@@ -204,7 +204,7 @@ export function FirewallTab({
               onClick={() => setDialogOpen(true)}
             >
               <span className="inline-flex items-center gap-1.5">
-                <PlusIcon size={16} />
+                <PlusIcon size={16} className="color-white"/>
                 포트 추가
               </span>
             </Button>
