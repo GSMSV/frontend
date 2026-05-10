@@ -46,7 +46,8 @@ export default function ApprovalsPage() {
       router.push("/instances");
       return;
     }
-    fetchRequests();
+    const initial = setTimeout(fetchRequests, 0);
+    return () => clearTimeout(initial);
   }, [user, router, fetchRequests]);
 
   const handleApprove = async (userId: number) => {

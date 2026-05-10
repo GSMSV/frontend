@@ -16,6 +16,7 @@ import {
 import { controlVm, deleteVm, extendVm } from "@/lib/api";
 import { useNotifications } from "@/lib/notification-context";
 import type { Instance } from "@/lib/types";
+import { ArrowLeftIcon } from "@/components/ui/icons";
 
 import { StatusBadge } from "./status-badge";
 
@@ -25,12 +26,13 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
   const [actionLoading, setActionLoading] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [now] = useState(() => Date.now());
 
   const isProvisioning = !!instance.provisioning;
 
   const expiresAt = instance.expires_at ? new Date(instance.expires_at) : null;
   const daysUntilExpiry = expiresAt
-    ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    ? Math.ceil((expiresAt.getTime() - now) / (1000 * 60 * 60 * 24))
     : null;
   const canExtend = daysUntilExpiry !== null && daysUntilExpiry <= 15;
 
@@ -79,9 +81,10 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
       <div className="flex flex-col gap-3">
         <Link
           href="/instances"
-          className="text-sm text-[var(--zm-color-text-muted,#94a3b8)] hover:text-[var(--zm-color-text-primary,#0f172a)]"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--zm-color-text-muted,#94a3b8)] hover:text-[var(--zm-color-text-primary,#0f172a)]"
         >
-          ← 인스턴스 목록으로 돌아가기
+          <ArrowLeftIcon size={16} />
+          인스턴스 목록으로 돌아가기
         </Link>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

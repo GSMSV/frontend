@@ -64,9 +64,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshNotifications();
+    const initial = setTimeout(refreshNotifications, 0);
     const interval = setInterval(refreshNotifications, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, [refreshNotifications]);
 
   const addNotification = useCallback(

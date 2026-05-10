@@ -2,6 +2,11 @@
 
 import { ProgressBar, Text } from "@zaemoru/react";
 
+import {
+  CheckCircleIcon,
+  MinusCircleIcon,
+} from "@/components/ui/icons";
+
 export type PasswordCheck = { label: string; pass: boolean };
 
 export const passwordChecks = (password: string): PasswordCheck[] => [
@@ -33,7 +38,14 @@ export function PasswordStrength({ password }: { password: string }) {
             size="xs"
             tone={c.pass ? "primary" : "muted"}
           >
-            {c.pass ? "✓" : "○"} {c.label}
+            <span className="inline-flex items-center gap-1">
+              {c.pass ? (
+                <CheckCircleIcon size={14} />
+              ) : (
+                <MinusCircleIcon size={14} />
+              )}
+              {c.label}
+            </span>
           </Text>
         ))}
       </div>

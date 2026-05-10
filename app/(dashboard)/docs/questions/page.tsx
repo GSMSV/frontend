@@ -24,6 +24,11 @@ import {
 import { useAuth } from "@/lib/auth-context";
 
 import { DocsLayout } from "@/components/docs/docs-layout";
+import {
+  ChatIcon,
+  CheckIcon,
+  TrashIcon,
+} from "@/components/ui/icons";
 
 export default function QuestionsPage() {
   const { user } = useAuth();
@@ -56,7 +61,8 @@ export default function QuestionsPage() {
   }, []);
 
   useEffect(() => {
-    fetchQuestions();
+    const initial = setTimeout(fetchQuestions, 0);
+    return () => clearTimeout(initial);
   }, [fetchQuestions]);
 
   const handleSubmit = async () => {
@@ -132,7 +138,10 @@ export default function QuestionsPage() {
             <div className="flex items-center gap-2">
               {submitted && (
                 <Text size="sm" tone="primary">
-                  ✓ 등록되었습니다
+                  <span className="inline-flex items-center gap-1">
+                    <CheckIcon size={16} />
+                    등록되었습니다
+                  </span>
                 </Text>
               )}
               {error && (
@@ -191,7 +200,7 @@ export default function QuestionsPage() {
                     ariaLabel="삭제"
                     onClick={() => setDeleteTarget(q)}
                   >
-                    🗑
+                    <TrashIcon />
                   </IconButton>
                 </div>
               </div>
@@ -202,7 +211,10 @@ export default function QuestionsPage() {
               {q.answer && (
                 <div className="mt-3 border-t border-[var(--zm-color-border-subtle,#e5e7eb)] pt-3">
                   <Text size="xs" weight="semibold" tone="primary">
-                    💬 관리자 답변
+                    <span className="inline-flex items-center gap-1">
+                      <ChatIcon size={14} />
+                      관리자 답변
+                    </span>
                   </Text>
                   {q.answered_at && (
                     <Text size="xs" tone="muted">

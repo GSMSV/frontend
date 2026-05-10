@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ChevronRightIcon,
+} from "@/components/ui/icons";
+
 const sideNav = [
   { title: "시작하기", href: "/docs/getting-started" },
   { title: "인스턴스", href: "/docs/instances" },
@@ -29,7 +35,7 @@ export function DocsLayout({ children }: { children: React.ReactNode }) {
         <Link href="/docs" className="hover:text-[var(--zm-color-text-primary,#0f172a)]">
           Docs
         </Link>
-        <span>›</span>
+        <ChevronRightIcon size={14} />
         <span className="font-medium text-[var(--zm-color-text-primary,#0f172a)]">
           {sideNav.find((n) => n.href === pathname)?.title ?? "문서"}
         </span>
@@ -41,9 +47,10 @@ export function DocsLayout({ children }: { children: React.ReactNode }) {
         {prev ? (
           <Link
             href={prev.href}
-            className="text-[var(--zm-color-text-muted,#94a3b8)] hover:text-[var(--zm-color-text-primary,#0f172a)]"
+            className="inline-flex items-center gap-1.5 text-[var(--zm-color-text-muted,#94a3b8)] hover:text-[var(--zm-color-text-primary,#0f172a)]"
           >
-            ← {prev.title}
+            <ArrowLeftIcon size={16} />
+            {prev.title}
           </Link>
         ) : (
           <span />
@@ -51,9 +58,10 @@ export function DocsLayout({ children }: { children: React.ReactNode }) {
         {next ? (
           <Link
             href={next.href}
-            className="text-[var(--zm-color-text-muted,#94a3b8)] hover:text-[var(--zm-color-text-primary,#0f172a)]"
+            className="inline-flex items-center gap-1.5 text-[var(--zm-color-text-muted,#94a3b8)] hover:text-[var(--zm-color-text-primary,#0f172a)]"
           >
-            {next.title} →
+            {next.title}
+            <ArrowRightIcon size={16} />
           </Link>
         ) : (
           <span />

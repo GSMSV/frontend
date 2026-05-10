@@ -24,6 +24,12 @@ import {
   restoreDefaultPorts,
 } from "@/lib/api";
 import type { Instance } from "@/lib/types";
+import {
+  CopiedIcon,
+  CopyIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@/components/ui/icons";
 
 export function FirewallTab({
   instance,
@@ -57,7 +63,8 @@ export function FirewallTab({
   }, [instance.node, instance.vmid]);
 
   useEffect(() => {
-    fetchPorts();
+    const initial = setTimeout(fetchPorts, 0);
+    return () => clearTimeout(initial);
   }, [fetchPorts]);
 
   const handleCopy = async (text: string, id: number) => {
@@ -160,7 +167,7 @@ export function FirewallTab({
                     handleCopy(`ssh.gsmsv.site:${p.external_port}`, p.id)
                   }
                 >
-                  {copiedId === p.id ? "✓" : "⧉"}
+                  {copiedId === p.id ? <CopiedIcon /> : <CopyIcon />}
                 </IconButton>
               </div>
             ))
@@ -196,7 +203,10 @@ export function FirewallTab({
               size="small"
               onClick={() => setDialogOpen(true)}
             >
-              + 포트 추가
+              <span className="inline-flex items-center gap-1.5">
+                <PlusIcon size={16} />
+                포트 추가
+              </span>
             </Button>
           </div>
         </div>
@@ -245,7 +255,7 @@ export function FirewallTab({
                     disabled={deletingId === p.id}
                     onClick={() => handleDelete(p.id)}
                   >
-                    {deletingId === p.id ? "..." : "🗑"}
+                    {deletingId === p.id ? "..." : <TrashIcon />}
                   </IconButton>
                 </div>
               </div>

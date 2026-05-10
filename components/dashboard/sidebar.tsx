@@ -19,6 +19,10 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+} from "@/components/ui/icons";
 
 type NavItem = { title: string; href: string };
 
@@ -107,7 +111,9 @@ export function Sidebar({
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (pathname.startsWith("/docs")) setDocsOpen(true);
+    if (!pathname.startsWith("/docs")) return;
+    const initial = setTimeout(() => setDocsOpen(true), 0);
+    return () => clearTimeout(initial);
   }, [pathname]);
 
   const fetchVms = useCallback(async () => {
@@ -127,9 +133,12 @@ export function Sidebar({
   }, [isAdmin]);
 
   useEffect(() => {
-    fetchVms();
+    const initial = setTimeout(fetchVms, 0);
     const interval = setInterval(fetchVms, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, [fetchVms]);
 
   const isItemActive = (href: string) => {
@@ -178,7 +187,11 @@ export function Sidebar({
             )}
           >
             <span>문서</span>
-            <span className="text-xs">{docsOpen ? "▾" : "▸"}</span>
+            {docsOpen ? (
+              <ChevronDownIcon className="text-xs" size={16} />
+            ) : (
+              <ChevronRightIcon className="text-xs" size={16} />
+            )}
           </button>
           {docsOpen && (
             <div className="ml-2 mt-1 flex flex-col gap-0.5 border-l border-[var(--zm-color-border-subtle,#e5e7eb)] pl-3">
@@ -237,8 +250,13 @@ export function Sidebar({
                       className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-[var(--zm-color-text-secondary,#475569)] hover:bg-[var(--zm-color-bg-subtle,#f3f4f6)]"
                     >
                       <span>{node.name}</span>
-                      <span className="text-xs">
-                        {node.vms.length} {expanded ? "▾" : "▸"}
+                      <span className="flex items-center gap-1 text-xs">
+                        {node.vms.length}
+                        {expanded ? (
+                          <ChevronDownIcon size={16} />
+                        ) : (
+                          <ChevronRightIcon size={16} />
+                        )}
                       </span>
                     </button>
                     {expanded &&

@@ -4,6 +4,8 @@ import Link from "next/link";
 
 import { Card, Heading, Paragraph, Text } from "@zaemoru/react";
 
+import { ArrowRightIcon } from "@/components/ui/icons";
+
 const sections = [
   {
     title: "시작하기",
@@ -67,9 +69,10 @@ export default function DocsPage() {
                 플랫폼 소개, 제공 기능, 계정 유형을 확인하세요.
               </Text>
             </div>
-            <Text size="lg" tone="muted">
-              →
-            </Text>
+            <ArrowRightIcon
+              className="text-[var(--zm-color-text-muted,#94a3b8)]"
+              size={20}
+            />
           </div>
         </Card>
       </Link>

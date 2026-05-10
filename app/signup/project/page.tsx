@@ -28,6 +28,7 @@ import {
   PasswordStrength,
   isPasswordValid,
 } from "@/components/auth/password-strength";
+import { CheckIcon } from "@/components/ui/icons";
 
 type Step = "email" | "details";
 
@@ -176,7 +177,7 @@ export default function ProjectSignupPage() {
                     }
                     trailing={
                       selectedProject === project.name && !project.taken
-                        ? "✓"
+                        ? <CheckIcon />
                         : undefined
                     }
                     onClick={() => {

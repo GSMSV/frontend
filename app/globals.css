@@ -1,6 +1,43 @@
 @import "@zaemoru/tokens/index.css";
 @import "tailwindcss";
 
+zm-card {
+  border: 1px solid var(--zm-color-border-subtle);
+  padding: var(--zm-spacing-6);
+}
+
+zm-card[padding="none"] {
+  padding: 0;
+}
+
+zm-card[padding="small"] {
+  padding: var(--zm-spacing-4);
+}
+
+zm-card[padding="medium"] {
+  padding: var(--zm-spacing-6);
+}
+
+zm-card[padding="large"] {
+  padding: var(--zm-spacing-7);
+}
+
+zm-badge {
+  padding: 1px 5px;
+}
+
+zm-badge[size="small"] {
+  padding: 2px 6px;
+}
+
+zm-badge[size="medium"] {
+  padding: 3px var(--zm-spacing-2);
+}
+
+zm-badge[size="large"] {
+  padding: 4px 10px;
+}
+
 html,
 body {
   height: 100%;

@@ -15,7 +15,6 @@ import {
 } from "@zaemoru/react";
 
 import {
-  type AdminNodeVms,
   type VmInfo,
   getAllVms,
   getMyVms,
@@ -26,6 +25,7 @@ import {
   useNotifications,
 } from "@/lib/notification-context";
 import { cn } from "@/lib/utils";
+import { BarsIcon, BellIcon } from "@/components/ui/icons";
 
 function formatTimeAgo(date: Date): string {
   const now = new Date();
@@ -122,7 +122,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
           ariaLabel="메뉴"
           onClick={onMenuClick}
         >
-          ☰
+          <BarsIcon />
         </IconButton>
       </div>
 
@@ -191,7 +191,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
               setShowNotifications(!showNotifications);
             }}
           >
-            🔔
+            <BellIcon />
           </IconButton>
           {hasUnread && (
             <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />

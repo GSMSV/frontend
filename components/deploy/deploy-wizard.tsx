@@ -28,6 +28,11 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
+import {
+  CheckIcon,
+  CopiedIcon,
+  CopyIcon,
+} from "@/components/ui/icons";
 
 const stepNames = ["운영체제", "노드", "사양", "확인"];
 
@@ -284,7 +289,7 @@ export function DeployWizard() {
                         {os.tag}
                       </Badge>
                     )}
-                    {selectedOs === os.id && "✓"}
+                    {selectedOs === os.id && <CheckIcon />}
                   </span>
                 }
                 onClick={() => setSelectedOs(os.id)}
@@ -318,7 +323,9 @@ export function DeployWizard() {
                         ? `CPU ${res.cpu_percent ?? 0}% · RAM ${res.mem_used_gb}/${res.mem_total_gb} GB`
                         : node.desc
                   }
-                  trailing={selectedNode === node.id ? "✓" : undefined}
+                  trailing={
+                    selectedNode === node.id ? <CheckIcon /> : undefined
+                  }
                   onClick={() => isOnline !== false && setSelectedNode(node.id)}
                 />
               );
@@ -342,7 +349,9 @@ export function DeployWizard() {
                 interactive
                 title={tier.name}
                 description={`${tier.cpu} · ${tier.memory} · ${tier.disk}`}
-                trailing={selectedTier === tier.id ? "✓" : undefined}
+                trailing={
+                  selectedTier === tier.id ? <CheckIcon /> : undefined
+                }
                 onClick={() => setSelectedTier(tier.id)}
               />
             ))}
@@ -509,7 +518,7 @@ function Field({
               setTimeout(() => setCopied(false), 1500);
             }}
           >
-            {copied ? "✓" : "⧉"}
+            {copied ? <CopiedIcon /> : <CopyIcon />}
           </IconButton>
         )}
       </div>

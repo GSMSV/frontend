@@ -170,9 +170,12 @@ export function MetricsTab({ instance }: { instance: Instance }) {
 
   useEffect(() => {
     if (!isRunning) return;
-    fetchMetrics();
+    const initial = setTimeout(fetchMetrics, 0);
     const interval = setInterval(fetchMetrics, POLL_INTERVAL);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, [isRunning, fetchMetrics]);
 
   if (!isRunning) {
@@ -299,4 +302,3 @@ export function MetricsTab({ instance }: { instance: Instance }) {
     </div>
   );
 }
-

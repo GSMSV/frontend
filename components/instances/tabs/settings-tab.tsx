@@ -29,6 +29,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
 import type { Instance } from "@/lib/types";
+import { PlusIcon } from "@/components/ui/icons";
 
 export function SettingsTab({ instance }: { instance: Instance }) {
   const { user } = useAuth();
@@ -136,7 +137,8 @@ export function SettingsTab({ instance }: { instance: Instance }) {
   }, [instance.node, instance.vmid]);
 
   useEffect(() => {
-    fetchSnapshots();
+    const initial = setTimeout(fetchSnapshots, 0);
+    return () => clearTimeout(initial);
   }, [fetchSnapshots]);
 
   const handleCreateSnap = async () => {
@@ -219,7 +221,10 @@ export function SettingsTab({ instance }: { instance: Instance }) {
             disabled={snapActionLoading || manualSnaps.length >= 2}
             onClick={() => setShowCreateInput(true)}
           >
-            + 생성 ({manualSnaps.length}/2)
+            <span className="inline-flex items-center gap-1.5">
+              <PlusIcon size={16} />
+              생성 ({manualSnaps.length}/2)
+            </span>
           </Button>
         </div>
 

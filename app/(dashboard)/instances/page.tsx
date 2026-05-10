@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button, Heading, Paragraph } from "@zaemoru/react";
 
 import { InstancesTable } from "@/components/instances/instances-table";
+import { PlusIcon } from "@/components/ui/icons";
 
 export default function InstancesPage() {
   return (
@@ -19,7 +20,12 @@ export default function InstancesPage() {
           </Paragraph>
         </div>
         <Link href="/deploy" className="sm:self-start">
-          <Button variant="primary">+ 인스턴스 생성</Button>
+          <Button variant="primary">
+            <span className="inline-flex items-center gap-1.5">
+              <PlusIcon size={18} />
+              인스턴스 생성
+            </span>
+          </Button>
         </Link>
       </div>
 

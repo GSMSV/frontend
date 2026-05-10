@@ -12,6 +12,12 @@ import {
 
 import type { PortInfo } from "@/lib/api";
 import type { Instance } from "@/lib/types";
+import {
+  CopiedIcon,
+  CopyIcon,
+  EyeIcon,
+  EyeSlashIcon,
+} from "@/components/ui/icons";
 
 function Row({
   label,
@@ -50,7 +56,7 @@ function CopyButton({ text }: { text: string }) {
         setTimeout(() => setCopied(false), 1500);
       }}
     >
-      {copied ? "✓" : "⧉"}
+      {copied ? <CopiedIcon /> : <CopyIcon />}
     </IconButton>
   );
 }
@@ -63,6 +69,7 @@ export function OverviewTab({
   ports?: PortInfo[];
 }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [now] = useState(() => Date.now());
 
   const createdDate = instance.created
     ? new Date(instance.created).toLocaleDateString("ko-KR")
@@ -74,7 +81,7 @@ export function OverviewTab({
 
   const daysUntilExpiry = instance.expires_at
     ? Math.ceil(
-        (new Date(instance.expires_at).getTime() - Date.now()) /
+        (new Date(instance.expires_at).getTime() - now) /
           (1000 * 60 * 60 * 24),
       )
     : null;
@@ -195,7 +202,7 @@ export function OverviewTab({
                     ariaLabel="표시"
                     onClick={() => setShowPassword((v) => !v)}
                   >
-                    {showPassword ? "🙈" : "👁"}
+                    {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
                   </IconButton>
                   <CopyButton text={instance.vm_password} />
                 </>
