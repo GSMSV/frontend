@@ -23,12 +23,19 @@ export function SelectableCard({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={cn(
-        "group relative flex w-full items-start gap-3 rounded-xl border-2 px-4 py-3.5 text-left transition-all",
-        "disabled:cursor-not-allowed disabled:opacity-50",
+      style={
         selected
-          ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/40"
-          : "border-[var(--zm-color-border-subtle,#e5e7eb)] hover:border-[var(--zm-color-border-strong,#9ca3af)] hover:bg-[var(--zm-color-bg-subtle,#f9fafb)]",
+          ? {
+              borderColor: "var(--zm-color-primary, #3182f6)",
+              backgroundColor: "var(--zm-color-primary-subtle, #e8f1fe)",
+            }
+          : undefined
+      }
+      className={cn(
+        "group relative flex w-full items-start gap-3 rounded-xl border-2 bg-white px-4 py-3.5 text-left transition-all",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        !selected &&
+          "border-(--zm-color-border-subtle,#e5e7eb) hover:border-(--zm-color-border-strong,#9ca3af) hover:bg-(--zm-color-bg-subtle,#f9fafb)",
       )}
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">{children}</div>
@@ -40,7 +47,10 @@ export function SelectableCard({
             selected ? "opacity-100" : "opacity-0",
           )}
         >
-          <CheckCircleIcon size={22} className="text-blue-500 dark:text-blue-400" />
+          <CheckCircleIcon
+            size={22}
+            className="text-(--zm-color-primary,#3182f6)"
+          />
         </div>
       </div>
     </button>
