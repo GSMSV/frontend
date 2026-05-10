@@ -10,7 +10,6 @@ import {
   Card,
   Heading,
   IconButton,
-  ListRow,
   Paragraph,
   ProgressStepper,
   Result,
@@ -28,11 +27,10 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
-import {
-  CheckIcon,
-  CopiedIcon,
-  CopyIcon,
-} from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
+import { CopiedIcon, CopyIcon } from "@/components/ui/icons";
+
+import { SelectableCard } from "./selectable-card";
 
 const stepNames = ["운영체제", "노드", "사양", "확인"];
 
@@ -134,23 +132,32 @@ export function DeployWizard() {
   const [nodeResources, setNodeResources] = useState<
     Record<string, NodeResources>
   >({});
-  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isHydrated) return;
     getNodesResources()
       .then(setNodeResources)
       .catch(() => {});
-  }, [isHydrated]);
+  }, []);
 
   const userRole = user?.role ?? "user";
   const availableNodes = nodeOptions.filter((n) => n.roles.includes(userRole));
   const availableTiers = tiers.filter((t) => t.roles.includes(userRole));
   const isCustomTier = selectedTier === "project_custom";
+
+  const recommendedNodeId = availableNodes.reduce<string | null>(
+    (best, node) => {
+      const res = nodeResources[node.id];
+      if (!res?.online || !res.mem_total_gb || !res.mem_used_gb) return best;
+      const percent = res.mem_used_gb / res.mem_total_gb;
+      const bestRes = best ? nodeResources[best] : null;
+      if (!bestRes?.online || !bestRes.mem_total_gb || !bestRes.mem_used_gb) {
+        return node.id;
+      }
+      const bestPercent = bestRes.mem_used_gb / bestRes.mem_total_gb;
+      return percent < bestPercent ? node.id : best;
+    },
+    null,
+  );
 
   const canProceed = () => {
     switch (step) {
@@ -266,37 +273,49 @@ export function DeployWizard() {
     );
   }
 
+  const proceedDisabled = !canProceed();
+  const prevDisabled = step === 1 || creating;
+
   return (
-    <div className="flex flex-col gap-4">
-      <ProgressStepper value={step} total={4} />
-      <Text size="sm" tone="muted">
-        Step {step}/{stepNames.length} · {stepNames[step - 1]}
-      </Text>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <ProgressStepper value={step} total={4} />
+        <Text size="sm" tone="muted">
+          Step {step}/{stepNames.length} · {stepNames[step - 1]}
+        </Text>
+      </div>
 
       {step === 1 && (
         <Card elevation="low" padding="medium">
-          <Heading level="3" size="md">
-            인스턴스에 설치할 운영체제를 골라주세요.
-          </Heading>
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
+            <Heading level="3" size="md">
+              운영체제
+            </Heading>
+            <Paragraph size="sm" tone="muted">
+              인스턴스에 설치할 운영체제를 선택해주세요.
+            </Paragraph>
+          </div>
+          <div className="mt-5 flex flex-col gap-3">
             {osOptions.map((os) => (
-              <ListRow
+              <SelectableCard
                 key={os.id}
-                interactive
-                title={os.name}
-                description={os.desc}
-                trailing={
-                  <span className="flex items-center gap-2">
-                    {os.tag && (
-                      <Badge variant="weak" color="blue" size="small">
-                        {os.tag}
-                      </Badge>
-                    )}
-                    {selectedOs === os.id && <CheckIcon />}
-                  </span>
-                }
+                selected={selectedOs === os.id}
                 onClick={() => setSelectedOs(os.id)}
-              />
+                badge={
+                  os.tag ? (
+                    <Badge variant="weak" color="blue" size="small">
+                      {os.tag}
+                    </Badge>
+                  ) : undefined
+                }
+              >
+                <Text size="md" weight="semibold">
+                  {os.name}
+                </Text>
+                <Text size="sm" tone="muted">
+                  {os.desc}
+                </Text>
+              </SelectableCard>
             ))}
           </div>
         </Card>
@@ -304,30 +323,85 @@ export function DeployWizard() {
 
       {step === 2 && (
         <Card elevation="low" padding="medium">
-          <Heading level="3" size="md">
-            인스턴스를 배포할 서버 노드를 골라주세요.
-          </Heading>
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
+            <Heading level="3" size="md">
+              노드
+            </Heading>
+            <Paragraph size="sm" tone="muted">
+              인스턴스를 배포할 서버 노드를 선택해주세요.
+            </Paragraph>
+          </div>
+          <div className="mt-5 flex flex-col gap-3">
             {availableNodes.map((node) => {
-              const res = isHydrated ? nodeResources[node.id] : undefined;
+              const res = nodeResources[node.id];
               const isOnline = res?.online;
+              const isRecommended = recommendedNodeId === node.id;
               return (
-                <ListRow
+                <SelectableCard
                   key={node.id}
-                  interactive={isOnline !== false}
-                  title={node.name}
-                  description={
-                    isOnline === false
-                      ? "오프라인"
-                      : res
-                        ? `CPU ${res.cpu_percent ?? 0}% · RAM ${res.mem_used_gb}/${res.mem_total_gb} GB`
-                        : node.desc
+                  selected={selectedNode === node.id}
+                  disabled={isOnline === false}
+                  onClick={() => setSelectedNode(node.id)}
+                  badge={
+                    <div className="flex items-center gap-1.5">
+                      {isOnline === false && (
+                        <Badge variant="weak" color="red" size="small">
+                          오프라인
+                        </Badge>
+                      )}
+                      {isRecommended && isOnline !== false && (
+                        <Badge variant="weak" color="green" size="small">
+                          추천
+                        </Badge>
+                      )}
+                      {node.id === "gsmgpu3" && (
+                        <Badge variant="weak" color="elephant" size="small">
+                          프로젝트 전용
+                        </Badge>
+                      )}
+                    </div>
                   }
-                  trailing={
-                    selectedNode === node.id ? <CheckIcon /> : undefined
-                  }
-                  onClick={() => isOnline !== false && setSelectedNode(node.id)}
-                />
+                >
+                  <Text size="md" weight="semibold">
+                    {node.name}
+                  </Text>
+                  <Text size="sm" tone="muted">
+                    {node.desc}
+                  </Text>
+                  {res?.online && (
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      <ResourceBar
+                        label="CPU"
+                        percent={res.cpu_percent ?? 0}
+                        value={`${res.cpu_percent ?? 0}%`}
+                      />
+                      <ResourceBar
+                        label="RAM"
+                        percent={
+                          res.mem_total_gb
+                            ? Math.round(
+                                ((res.mem_used_gb ?? 0) / res.mem_total_gb) *
+                                  100,
+                              )
+                            : 0
+                        }
+                        value={`${res.mem_used_gb ?? 0}/${res.mem_total_gb ?? 0} GB`}
+                      />
+                      <ResourceBar
+                        label="SSD"
+                        percent={
+                          res.disk_total_gb
+                            ? Math.round(
+                                ((res.disk_used_gb ?? 0) / res.disk_total_gb) *
+                                  100,
+                              )
+                            : 0
+                        }
+                        value={`${res.disk_used_gb ?? 0}/${res.disk_total_gb ?? 0} GB`}
+                      />
+                    </div>
+                  )}
+                </SelectableCard>
               );
             })}
           </div>
@@ -336,77 +410,73 @@ export function DeployWizard() {
 
       {step === 3 && (
         <Card elevation="low" padding="medium">
-          <Heading level="3" size="md">
-            인스턴스의 컴퓨팅 리소스 사양을 골라주세요.
-          </Heading>
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
+            <Heading level="3" size="md">
+              사양
+            </Heading>
+            <Paragraph size="sm" tone="muted">
+              인스턴스의 컴퓨팅 리소스를 선택해주세요.
+            </Paragraph>
+          </div>
+          <div className="mt-5 flex flex-col gap-3">
             {availableTiers.map((tier) => (
-              <ListRow
+              <SelectableCard
                 key={tier.id}
-                interactive
-                title={tier.name}
-                description={`${tier.cpu} · ${tier.memory} · ${tier.disk}`}
-                trailing={
-                  selectedTier === tier.id ? <CheckIcon /> : undefined
-                }
+                selected={selectedTier === tier.id}
                 onClick={() => setSelectedTier(tier.id)}
-              />
+                badge={
+                  tier.id === "project_custom" ? (
+                    <Badge variant="weak" color="elephant" size="small">
+                      프로젝트 전용
+                    </Badge>
+                  ) : undefined
+                }
+              >
+                <Text size="md" weight="semibold">
+                  {tier.name}
+                </Text>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <SpecItem label="CPU" value={tier.cpu} />
+                  <SpecItem label="RAM" value={tier.memory} />
+                  <SpecItem label="Storage" value={tier.disk} />
+                </div>
+              </SelectableCard>
             ))}
           </div>
 
           {isCustomTier && (
-            <div className="mt-4 flex flex-col gap-4 rounded-lg border border-[var(--zm-color-border-subtle,#e5e7eb)] p-4">
+            <div className="mt-5 flex flex-col gap-4 rounded-xl border-2 border-dashed border-[var(--zm-color-border-subtle,#e5e7eb)] p-5">
               <Text size="sm" weight="semibold">
                 커스텀 리소스 설정
               </Text>
 
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <Text size="sm">vCPU</Text>
-                  <Text size="sm" weight="semibold">
-                    {customCores} Core
-                  </Text>
-                </div>
-                <Slider
-                  value={customCores}
-                  min={CUSTOM_LIMITS.cores.min}
-                  max={CUSTOM_LIMITS.cores.max}
-                  step={CUSTOM_LIMITS.cores.step}
-                  onChange={(v) => setCustomCores(v)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <Text size="sm">RAM</Text>
-                  <Text size="sm" weight="semibold">
-                    {customMemory} GB
-                  </Text>
-                </div>
-                <Slider
-                  value={customMemory}
-                  min={CUSTOM_LIMITS.memory.min}
-                  max={CUSTOM_LIMITS.memory.max}
-                  step={CUSTOM_LIMITS.memory.step}
-                  onChange={(v) => setCustomMemory(v)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <Text size="sm">Storage</Text>
-                  <Text size="sm" weight="semibold">
-                    {customDisk} GB
-                  </Text>
-                </div>
-                <Slider
-                  value={customDisk}
-                  min={CUSTOM_LIMITS.disk.min}
-                  max={CUSTOM_LIMITS.disk.max}
-                  step={CUSTOM_LIMITS.disk.step}
-                  onChange={(v) => setCustomDisk(v)}
-                />
-              </div>
+              <SliderRow
+                label="vCPU"
+                value={customCores}
+                displayValue={`${customCores} Core`}
+                min={CUSTOM_LIMITS.cores.min}
+                max={CUSTOM_LIMITS.cores.max}
+                step={CUSTOM_LIMITS.cores.step}
+                onChange={setCustomCores}
+              />
+              <SliderRow
+                label="RAM"
+                value={customMemory}
+                displayValue={`${customMemory} GB`}
+                min={CUSTOM_LIMITS.memory.min}
+                max={CUSTOM_LIMITS.memory.max}
+                step={CUSTOM_LIMITS.memory.step}
+                onChange={setCustomMemory}
+              />
+              <SliderRow
+                label="Storage"
+                value={customDisk}
+                displayValue={`${customDisk} GB`}
+                min={CUSTOM_LIMITS.disk.min}
+                max={CUSTOM_LIMITS.disk.max}
+                step={CUSTOM_LIMITS.disk.step}
+                onChange={setCustomDisk}
+              />
             </div>
           )}
         </Card>
@@ -414,36 +484,43 @@ export function DeployWizard() {
 
       {step === 4 && (
         <Card elevation="low" padding="medium">
-          <Heading level="3" size="md">
-            마지막으로 설정을 확인하고, 인스턴스 이름을 알려주세요!
-          </Heading>
+          <div className="flex flex-col gap-1">
+            <Heading level="3" size="md">
+              확인
+            </Heading>
+            <Paragraph size="sm" tone="muted">
+              설정을 확인하고 인스턴스 이름을 알려주세요.
+            </Paragraph>
+          </div>
 
-          <div className="mt-3 flex flex-col gap-3">
+          <div className="mt-5 flex flex-col gap-4">
             <TextField
               label="인스턴스 이름 (선택)"
               value={hostname}
               placeholder="미입력 시 자동 생성"
               helperText="영어, 숫자, 하이픈(-)만 사용 가능합니다."
-              onChange={(value) =>
+              onInput={(value) =>
                 setHostname(
                   value.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, ""),
                 )
               }
             />
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="운영체제" value={selectedOsData?.name ?? "-"} />
-              <Field label="노드" value={selectedNodeData?.name ?? "-"} />
-              <Field label="등급" value={selectedTierData?.name ?? "-"} />
-              {displaySpecs && (
-                <>
-                  <Field
-                    label="CPU / 메모리"
-                    value={`${displaySpecs.cpu} / ${displaySpecs.memory}`}
-                  />
-                  <Field label="디스크" value={displaySpecs.disk} />
-                </>
-              )}
+            <div className="rounded-xl border border-[var(--zm-color-border-subtle,#e5e7eb)] bg-[var(--zm-color-bg-subtle,#f9fafb)] p-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="운영체제" value={selectedOsData?.name ?? "-"} />
+                <Field label="노드" value={selectedNodeData?.name ?? "-"} />
+                <Field label="등급" value={selectedTierData?.name ?? "-"} />
+                {displaySpecs && (
+                  <>
+                    <Field
+                      label="CPU / 메모리"
+                      value={`${displaySpecs.cpu} / ${displaySpecs.memory}`}
+                    />
+                    <Field label="디스크" value={displaySpecs.disk} />
+                  </>
+                )}
+              </div>
             </div>
 
             {error && <BottomInfo tone="danger">{error}</BottomInfo>}
@@ -451,25 +528,42 @@ export function DeployWizard() {
         </Card>
       )}
 
-      <div className="flex items-center justify-between">
-        <Button
-          variant="secondary"
-          disabled={step === 1 || creating}
-          onClick={() => setStep(step - 1)}
+      <div className="flex items-center justify-between gap-3 pt-2">
+        <div
+          className={cn(
+            "transition-opacity",
+            prevDisabled && "pointer-events-none opacity-40",
+          )}
         >
-          이전
-        </Button>
-        {step < 4 ? (
           <Button
-            variant="primary"
-            disabled={!canProceed()}
-            onClick={() => setStep(step + 1)}
+            variant="secondary"
+            size="large"
+            disabled={prevDisabled}
+            onClick={() => setStep(step - 1)}
           >
-            다음 단계
+            이전
           </Button>
+        </div>
+        {step < 4 ? (
+          <div
+            className={cn(
+              "transition-opacity",
+              proceedDisabled && "pointer-events-none opacity-40",
+            )}
+          >
+            <Button
+              variant="primary"
+              size="large"
+              disabled={proceedDisabled}
+              onClick={() => setStep(step + 1)}
+            >
+              다음 단계
+            </Button>
+          </div>
         ) : (
           <Button
             variant="primary"
+            size="large"
             loading={creating}
             disabled={creating}
             onClick={handleCreate}
@@ -477,6 +571,93 @@ export function DeployWizard() {
             인스턴스 생성
           </Button>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ResourceBar({
+  label,
+  percent,
+  value,
+}: {
+  label: string;
+  percent: number;
+  value: string;
+}) {
+  const clamped = Math.min(100, Math.max(0, percent));
+  const color =
+    clamped >= 70
+      ? "bg-red-500"
+      : clamped >= 50
+        ? "bg-yellow-500"
+        : "bg-emerald-500";
+  return (
+    <div className="flex items-center gap-2">
+      <Text size="xs" tone="muted" className="w-10 shrink-0">
+        {label}
+      </Text>
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--zm-color-bg-subtle,#f3f4f6)]">
+        <div
+          className={cn("h-full rounded-full transition-all", color)}
+          style={{ width: `${clamped}%` }}
+        />
+      </div>
+      <Text size="xs" tone="muted" className="shrink-0 tabular-nums">
+        {value}
+      </Text>
+    </div>
+  );
+}
+
+function SpecItem({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="flex items-baseline gap-1.5">
+      <Text size="xs" tone="muted">
+        {label}
+      </Text>
+      <Text size="sm" weight="medium">
+        {value}
+      </Text>
+    </span>
+  );
+}
+
+function SliderRow({
+  label,
+  value,
+  displayValue,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  displayValue: string;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <Text size="sm" weight="medium">
+          {label}
+        </Text>
+        <Text size="sm" weight="semibold">
+          {displayValue}
+        </Text>
+      </div>
+      <Slider value={value} min={min} max={max} step={step} onChange={onChange} />
+      <div className="flex justify-between">
+        <Text size="xs" tone="muted">
+          {min}
+        </Text>
+        <Text size="xs" tone="muted">
+          {max}
+        </Text>
       </div>
     </div>
   );
