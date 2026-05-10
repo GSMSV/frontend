@@ -61,14 +61,14 @@ export default function SignupPage() {
   return (
     <AuthShell
       title="회원가입"
-      description="새 계정을 만들어 GSMSV를 시작하세요"
+      description="계정 유형을 선택하고 가입 정보를 입력하세요"
     >
       <Tab
         fullWidth
         value="user"
         items={[
           { value: "user", label: "일반" },
-          { value: "project_owner", label: "프로젝트 오너" },
+          { value: "project_owner", label: "프로젝트" },
         ]}
         onChange={(value) => {
           if (value === "project_owner") router.push("/signup/project");

@@ -14,10 +14,13 @@ export function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-[440px]">
-        <Card elevation="low" padding="large">
-          <div className="flex flex-col gap-6">
+    <div className="flex min-h-screen w-full items-center justify-center overflow-x-hidden px-4 py-10">
+      <div
+        className="min-w-0"
+        style={{ width: "calc(100vw - 32px)", maxWidth: 440 }}
+      >
+        <Card className="w-full max-w-full" elevation="low" padding="large">
+          <div className="flex min-w-0 flex-col gap-6">
             <div className="flex flex-col gap-2 text-center">
               <Heading level="1" size="xl">
                 {title}

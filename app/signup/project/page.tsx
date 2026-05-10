@@ -10,9 +10,7 @@ import {
   Button,
   ListRow,
   Link as ZmLink,
-  ProgressStepper,
   Tab,
-  Tag,
   TextArea,
   TextField,
 } from "@zaemoru/react";
@@ -106,31 +104,20 @@ export default function ProjectSignupPage() {
 
   return (
     <AuthShell
-      title={step === "email" ? "프로젝트 확인" : "계정 설정"}
-      description={
-        step === "email" ? (
-          <>
-            <Tag>Project</Tag>{" "}
-            DataGSM에서 조회되는 프로젝트 참여자만 가입할 수 있습니다.
-          </>
-        ) : (
-          <>{selectedProject} 프로젝트 오너로 가입합니다.</>
-        )
-      }
+      title="회원가입"
+      description="계정 유형을 선택하고 가입 정보를 입력하세요"
     >
       <Tab
         fullWidth
         value="project_owner"
         items={[
           { value: "user", label: "일반" },
-          { value: "project_owner", label: "프로젝트 오너" },
+          { value: "project_owner", label: "프로젝트" },
         ]}
         onChange={(value) => {
           if (value === "user") router.push("/signup");
         }}
       />
-
-      <ProgressStepper value={step === "email" ? 1 : 2} total={2} />
 
       {step === "email" && (
         <div className="flex flex-col gap-4">
@@ -147,6 +134,7 @@ export default function ProjectSignupPage() {
               placeholder="your@gsm.hs.kr"
               autoComplete="email"
               size="large"
+              helperText="DataGSM 프로젝트 참여자만 가입할 수 있습니다."
               onInput={(value) => {
                 setEmail(value);
                 setProjects([]);
@@ -224,12 +212,6 @@ export default function ProjectSignupPage() {
           )}
 
           <div className="flex flex-col items-center gap-2 text-sm">
-            <span className="inline-flex max-w-full flex-wrap items-baseline justify-center gap-x-1">
-              <span>일반 계정으로 가입하시겠어요?</span>
-              <Link href="/signup">
-                <ZmLink>일반 회원가입</ZmLink>
-              </Link>
-            </span>
             <span className="inline-flex max-w-full flex-wrap items-baseline justify-center gap-x-1">
               <span>이미 계정이 있으신가요?</span>
               <Link href="/login">
