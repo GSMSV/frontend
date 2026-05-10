@@ -71,7 +71,6 @@ function LoginContent() {
     <AuthShell title="로그인" description="GSMSV 계정으로 로그인하세요">
       <Tab
         fullWidth
-        variant="filled"
         value={loginRole}
         items={[
           { value: "user", label: "일반" },

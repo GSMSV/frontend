@@ -146,7 +146,6 @@ export default function ResetPasswordPage() {
         <div className="flex flex-col gap-4">
           <Tab
             fullWidth
-            variant="filled"
             value={loginRole}
             items={[
               { value: "user", label: "일반" },

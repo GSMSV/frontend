@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {
   Badge,
@@ -10,6 +11,7 @@ import {
   ListRow,
   Link as ZmLink,
   ProgressStepper,
+  Tab,
   Tag,
   TextArea,
   TextField,
@@ -22,6 +24,7 @@ import {
   type ProjectInfo,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/lib/toast-context";
 import { AuthShell } from "@/components/auth/auth-shell";
 import {
   PasswordStrength,
@@ -31,7 +34,9 @@ import {
 type Step = "email" | "details";
 
 export default function ProjectSignupPage() {
+  const router = useRouter();
   const { signupProject } = useAuth();
+  const { toast } = useToast();
 
   const [step, setStep] = useState<Step>("email");
 
@@ -46,11 +51,8 @@ export default function ProjectSignupPage() {
   const [reason, setReason] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  const [error, setError] = useState("");
-
   const handleCheckEmail = async () => {
     if (checkLoading) return;
-    setError("");
     setCheckLoading(true);
     try {
       const data: ProjectCheckResponse = await checkProjectEligibility(email);
@@ -59,7 +61,8 @@ export default function ProjectSignupPage() {
       const available = data.projects.filter((p) => !p.taken);
       if (available.length > 0) setSelectedProject(available[0].name);
     } catch (err) {
-      setError(
+      toast(
+        "danger",
         err instanceof ApiError
           ? err.detail
           : "프로젝트 조회 중 오류가 발생했습니다.",
@@ -71,17 +74,16 @@ export default function ProjectSignupPage() {
 
   const handleSubmit = async () => {
     if (submitLoading) return;
-    setError("");
     if (password !== confirmPassword) {
-      setError("비밀번호가 일치하지 않습니다.");
+      toast("danger", "비밀번호가 일치하지 않습니다.");
       return;
     }
     if (!isPasswordValid(password)) {
-      setError("비밀번호 조건을 모두 충족해주세요.");
+      toast("danger", "비밀번호 조건을 모두 충족해주세요.");
       return;
     }
     if (!reason.trim()) {
-      setError("신청 사유를 입력해주세요.");
+      toast("danger", "신청 사유를 입력해주세요.");
       return;
     }
     setSubmitLoading(true);
@@ -89,7 +91,8 @@ export default function ProjectSignupPage() {
       await signupProject(email, password, selectedProject, reason);
       sessionStorage.setItem("notif:signup", "true");
     } catch (err) {
-      setError(
+      toast(
+        "danger",
         err instanceof ApiError
           ? err.detail
           : "회원가입 중 오류가 발생했습니다.",
@@ -115,9 +118,19 @@ export default function ProjectSignupPage() {
         )
       }
     >
-      <ProgressStepper value={step === "email" ? 1 : 2} total={2} />
+      <Tab
+        fullWidth
+        value="project_owner"
+        items={[
+          { value: "user", label: "일반" },
+          { value: "project_owner", label: "프로젝트 오너" },
+        ]}
+        onChange={(value) => {
+          if (value === "user") router.push("/signup");
+        }}
+      />
 
-      {error && <BottomInfo tone="danger">{error}</BottomInfo>}
+      <ProgressStepper value={step === "email" ? 1 : 2} total={2} />
 
       {step === "email" && (
         <div className="flex flex-col gap-4">
@@ -134,7 +147,7 @@ export default function ProjectSignupPage() {
               placeholder="your@gsm.hs.kr"
               autoComplete="email"
               size="large"
-              onChange={(value) => {
+              onInput={(value) => {
                 setEmail(value);
                 setProjects([]);
                 setSelectedProject("");
@@ -181,7 +194,6 @@ export default function ProjectSignupPage() {
                     onClick={() => {
                       if (project.taken) return;
                       setSelectedProject(project.name);
-                      setError("");
                     }}
                   />
                 ))}
@@ -199,10 +211,9 @@ export default function ProjectSignupPage() {
                   disabled={!selectedProject}
                   onClick={() => {
                     if (!selectedProject) {
-                      setError("프로젝트를 선택해주세요.");
+                      toast("danger", "프로젝트를 선택해주세요.");
                       return;
                     }
-                    setError("");
                     setStep("details");
                   }}
                 >
@@ -252,7 +263,7 @@ export default function ProjectSignupPage() {
                 placeholder="비밀번호를 입력하세요"
                 autoComplete="new-password"
                 size="large"
-                onChange={(value) => setPassword(value)}
+                onInput={(value) => setPassword(value)}
               />
               <PasswordStrength password={password} />
             </div>
@@ -271,7 +282,7 @@ export default function ProjectSignupPage() {
                   ? "비밀번호가 일치하지 않습니다"
                   : undefined
               }
-              onChange={(value) => setConfirmPassword(value)}
+              onInput={(value) => setConfirmPassword(value)}
             />
             <TextArea
               label="신청 사유"
@@ -279,7 +290,7 @@ export default function ProjectSignupPage() {
               placeholder="프로젝트 오너 권한이 필요한 이유를 작성해주세요."
               rows={4}
               helperText="관리자가 검토 후 승인합니다."
-              onChange={(value) => setReason(value)}
+              onInput={(value) => setReason(value)}
             />
             <div className="flex gap-2">
               <Button
@@ -288,7 +299,6 @@ export default function ProjectSignupPage() {
                 size="large"
                 onClick={() => {
                   setStep("email");
-                  setError("");
                 }}
               >
                 이전

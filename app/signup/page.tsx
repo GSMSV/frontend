@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {
-  BottomInfo,
   Button,
   Link as ZmLink,
+  Tab,
   TextField,
 } from "@zaemoru/react";
 
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/lib/toast-context";
 import { AuthShell } from "@/components/auth/auth-shell";
 import {
   PasswordStrength,
@@ -19,24 +21,24 @@ import {
 } from "@/components/auth/password-strength";
 
 export default function SignupPage() {
+  const router = useRouter();
   const { signup } = useAuth();
+  const { toast } = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     if (loading) return;
-    setError("");
 
     if (password !== confirmPassword) {
-      setError("비밀번호가 일치하지 않습니다.");
+      toast("danger", "비밀번호가 일치하지 않습니다.");
       return;
     }
     if (!isPasswordValid(password)) {
-      setError("비밀번호 조건을 모두 충족해주세요.");
+      toast("danger", "비밀번호 조건을 모두 충족해주세요.");
       return;
     }
 
@@ -45,7 +47,8 @@ export default function SignupPage() {
       await signup(email, password);
       sessionStorage.setItem("notif:signup", "true");
     } catch (err) {
-      setError(
+      toast(
+        "danger",
         err instanceof ApiError
           ? err.detail
           : "회원가입 중 오류가 발생했습니다.",
@@ -60,7 +63,17 @@ export default function SignupPage() {
       title="회원가입"
       description="새 계정을 만들어 GSMSV를 시작하세요"
     >
-      {error && <BottomInfo tone="danger">{error}</BottomInfo>}
+      <Tab
+        fullWidth
+        value="user"
+        items={[
+          { value: "user", label: "일반" },
+          { value: "project_owner", label: "프로젝트 오너" },
+        ]}
+        onChange={(value) => {
+          if (value === "project_owner") router.push("/signup/project");
+        }}
+      />
 
       <div
         className="flex flex-col gap-4"
@@ -76,7 +89,7 @@ export default function SignupPage() {
           placeholder="your@gsm.hs.kr"
           autoComplete="email"
           size="large"
-          onChange={(value) => setEmail(value)}
+          onInput={(value) => setEmail(value)}
         />
         <div className="flex flex-col gap-2">
           <TextField
@@ -87,7 +100,7 @@ export default function SignupPage() {
             placeholder="비밀번호를 입력하세요"
             autoComplete="new-password"
             size="large"
-            onChange={(value) => setPassword(value)}
+            onInput={(value) => setPassword(value)}
           />
           <PasswordStrength password={password} />
         </div>
@@ -107,7 +120,7 @@ export default function SignupPage() {
               ? "비밀번호가 일치하지 않습니다"
               : undefined
           }
-          onChange={(value) => setConfirmPassword(value)}
+          onInput={(value) => setConfirmPassword(value)}
         />
         <Button
           variant="primary"
@@ -122,12 +135,6 @@ export default function SignupPage() {
       </div>
 
       <div className="flex flex-col items-center gap-2 text-sm">
-        <span>
-          프로젝트 참여자이신가요?{" "}
-          <Link href="/signup/project">
-            <ZmLink>프로젝트 오너로 가입</ZmLink>
-          </Link>
-        </span>
         <span>
           이미 계정이 있으신가요?{" "}
           <Link href="/login">
