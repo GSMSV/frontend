@@ -22,7 +22,12 @@ Next.js 16 App Router · React 19 · TypeScript · Tailwind CSS v4 · `@zaemoru/
 
 ## 백엔드 연동
 
-`NEXT_PUBLIC_API_BASE_URL` (기본 `http://localhost:8000`) 로 FastAPI 호출. 인증은 JWT (access 30분 / refresh 7일) — 향후 `lib/auth-context.tsx` 로 정리 예정.
+`NEXT_PUBLIC_API_URL` (기본 `http://localhost:8000`) 로 FastAPI 호출. Next rewrite 로 `/api/*` 를 백엔드로 프록시 — same-origin httpOnly 쿠키 기반 인증.
+
+- 인증: JWT (access 30분 / refresh 7일) httpOnly 쿠키
+- 자동 갱신: 401 응답 시 `lib/api.ts` 가 `/api/v1/auth/refresh` 로 1회 재시도
+- 보호 라우트: `proxy.ts` 미들웨어가 `access_token` 쿠키 부재 시 `/login` 리다이렉트
+- 백엔드 레포: `../GSM-SV` (별도 레포)
 
 ## 컨벤션
 
