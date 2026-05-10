@@ -46,7 +46,13 @@ cp .env.local.example .env.local
 ```
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
+BACKEND_URL=http://localhost:8000
+```
+
+프로덕션 서버의 백엔드에 직접 붙여 확인할 때는 다음처럼 설정합니다.
+
+```env
+BACKEND_URL=https://gsmsv.site
 ```
 
 ### 3. 백엔드 실행 (별도 레포)
