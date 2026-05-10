@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import {
-  Border,
   Heading,
   Spinner,
   Text,
@@ -370,7 +369,7 @@ function Section({
         {title}
       </p>
       <div className="flex flex-col gap-0.5">{children}</div>
-      <Border />
+      <div className="mt-2 border-t border-[var(--zm-color-border-subtle,#e5e7eb)]" />
     </div>
   );
 }

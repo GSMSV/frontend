@@ -134,12 +134,18 @@ export function DeployWizard() {
   const [nodeResources, setNodeResources] = useState<
     Record<string, NodeResources>
   >({});
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
     getNodesResources()
       .then(setNodeResources)
       .catch(() => {});
-  }, []);
+  }, [isHydrated]);
 
   const userRole = user?.role ?? "user";
   const availableNodes = nodeOptions.filter((n) => n.roles.includes(userRole));
@@ -303,7 +309,7 @@ export function DeployWizard() {
           </Heading>
           <div className="mt-3 flex flex-col gap-2">
             {availableNodes.map((node) => {
-              const res = nodeResources[node.id];
+              const res = isHydrated ? nodeResources[node.id] : undefined;
               const isOnline = res?.online;
               return (
                 <ListRow
