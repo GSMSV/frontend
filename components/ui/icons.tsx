@@ -29,7 +29,7 @@ function createIcon(Icon: IconType) {
     return (
       <Icon
         aria-hidden={title ? undefined : true}
-        className={className}
+        className={className || "text-neutral-500"}
         size={size}
         title={title}
       />

@@ -22,7 +22,7 @@ export default function InstancesPage() {
         <Link href="/deploy" className="sm:self-start">
           <Button variant="primary">
             <span className="inline-flex items-center gap-1.5">
-              <PlusIcon size={18} />
+              <PlusIcon size={18} className="color-white" />
               인스턴스 생성
             </span>
           </Button>
