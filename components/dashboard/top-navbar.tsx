@@ -114,7 +114,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--zm-color-border-subtle,#e5e7eb)] bg-white/95 px-4 py-1 backdrop-blur md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--zm-color-border-subtle,#e5e7eb)] bg-white/95 px-4 py-4 backdrop-blur md:px-6">
       <div className="flex items-center gap-2 md:hidden">
         <IconButton
           variant="ghost"
