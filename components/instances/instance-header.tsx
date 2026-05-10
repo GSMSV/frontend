@@ -23,12 +23,14 @@ import { StatusBadge } from "./status-badge";
 export function InstanceHeader({ instance }: { instance: Instance }) {
   const router = useRouter();
   const { addNotification } = useNotifications();
-  const [actionLoading, setActionLoading] = useState(false);
+  type ActionKey = "extend" | "start" | "shutdown" | "reboot" | "delete";
+  const [actionLoading, setActionLoading] = useState<ActionKey | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [now] = useState(() => Date.now());
 
   const isProvisioning = !!instance.provisioning;
+  const anyActionRunning = actionLoading !== null;
 
   const expiresAt = instance.expires_at ? new Date(instance.expires_at) : null;
   const daysUntilExpiry = expiresAt
@@ -37,7 +39,7 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
   const canExtend = daysUntilExpiry !== null && daysUntilExpiry <= 15;
 
   const handleExtend = async () => {
-    setActionLoading(true);
+    setActionLoading("extend");
     try {
       const res = await extendVm(instance.node, instance.vmid);
       addNotification("success", res.message);
@@ -47,32 +49,31 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
         "error",
         e instanceof Error ? e.message : "연장 실패",
       );
-    } finally {
-      setActionLoading(false);
+      setActionLoading(null);
     }
   };
 
-  const handleAction = async (action: string) => {
-    if (actionLoading) return;
-    setActionLoading(true);
+  const handleAction = async (action: "start" | "shutdown" | "reboot") => {
+    if (anyActionRunning) return;
+    setActionLoading(action);
     try {
       await controlVm(instance.node, instance.vmid, action);
       const cooldown = action === "reboot" ? 30000 : 5000;
       setTimeout(() => window.location.reload(), cooldown);
     } catch {
-      setActionLoading(false);
+      setActionLoading(null);
     }
   };
 
   const handleDelete = async () => {
     if (deleteConfirmName !== instance.name) return;
-    setActionLoading(true);
+    setActionLoading("delete");
     setDeleteOpen(false);
     try {
       await deleteVm(instance.node, instance.vmid);
       router.push("/instances");
     } catch {
-      setActionLoading(false);
+      setActionLoading(null);
     }
   };
 
@@ -110,7 +111,8 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
               <Button
                 variant="secondary"
                 size="small"
-                disabled={actionLoading || !canExtend || isProvisioning}
+                disabled={anyActionRunning || !canExtend || isProvisioning}
+                loading={actionLoading === "extend"}
                 onClick={handleExtend}
               >
                 연장
@@ -120,7 +122,8 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
               <Button
                 variant="secondary"
                 size="small"
-                disabled={actionLoading || isProvisioning}
+                disabled={anyActionRunning || isProvisioning}
+                loading={actionLoading === "start"}
                 onClick={() => handleAction("start")}
               >
                 시작
@@ -129,7 +132,8 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
               <Button
                 variant="secondary"
                 size="small"
-                disabled={actionLoading || isProvisioning}
+                disabled={anyActionRunning || isProvisioning}
+                loading={actionLoading === "shutdown"}
                 onClick={() => handleAction("shutdown")}
               >
                 중지
@@ -138,7 +142,8 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
             <Button
               variant="secondary"
               size="small"
-              disabled={actionLoading || isProvisioning}
+              disabled={anyActionRunning || isProvisioning}
+              loading={actionLoading === "reboot"}
               onClick={() => handleAction("reboot")}
             >
               재시작
@@ -146,7 +151,8 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
             <Button
               variant="danger"
               size="small"
-              disabled={actionLoading || isProvisioning}
+              disabled={anyActionRunning || isProvisioning}
+              loading={actionLoading === "delete"}
               onClick={() => {
                 setDeleteOpen(true);
                 setDeleteConfirmName("");
