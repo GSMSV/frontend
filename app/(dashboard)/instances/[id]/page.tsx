@@ -3,11 +3,12 @@
 import { Suspense, use, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { BottomInfo, Spinner, Text } from "@zaemoru/react";
+import { Spinner, Text } from "@zaemoru/react";
 
 import { type PortInfo, getVmPorts, getVmStatus } from "@/lib/api";
 import type { Instance, VmStatusResponse } from "@/lib/types";
 
+import { Callout } from "@/components/ui/callout";
 import { InstanceHeader } from "@/components/instances/instance-header";
 import { InstanceTabs } from "@/components/instances/instance-tabs";
 
@@ -92,9 +93,10 @@ function InstanceDetailContent({ id }: { id: string }) {
     <div className="flex flex-col gap-4">
       <InstanceHeader instance={instance} />
       {instance.provisioning && (
-        <BottomInfo tone="warning">
-          초기 환경을 설정하고 있습니다. 완료될 때까지 SSH 접속을 자제해주세요.
-        </BottomInfo>
+        <Callout tone="warning" title="초기 환경 설정 중">
+          새 VM 의 cloud-init 프로비저닝이 완료될 때까지 SSH 접속을
+          자제해주세요. 보통 1~2분 정도 걸립니다.
+        </Callout>
       )}
       <InstanceTabs instance={instance} ports={ports} />
     </div>

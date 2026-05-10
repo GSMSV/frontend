@@ -557,7 +557,7 @@ export function DeployWizard() {
               disabled={proceedDisabled}
               onClick={() => setStep(step + 1)}
             >
-              다음 단계
+              다음
             </Button>
           </div>
         ) : (
