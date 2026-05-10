@@ -10,10 +10,11 @@ import {
   Empty,
   Heading,
   Paragraph,
-  Spinner,
   Tag,
   Text,
 } from "@zaemoru/react";
+
+import { ApprovalGridSkeleton } from "@/components/ui/skeleton";
 
 import {
   type PendingApproval,
@@ -28,7 +29,10 @@ export default function ApprovalsPage() {
   const { user } = useAuth();
   const [requests, setRequests] = useState<PendingApproval[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [actionLoading, setActionLoading] = useState<{
+    id: number;
+    type: "approve" | "reject";
+  } | null>(null);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -52,7 +56,7 @@ export default function ApprovalsPage() {
 
   const handleApprove = async (userId: number) => {
     if (actionLoading) return;
-    setActionLoading(userId);
+    setActionLoading({ id: userId, type: "approve" });
     try {
       await approveProjectOwner(userId);
       setRequests((prev) => prev.filter((r) => r.id !== userId));
@@ -66,7 +70,7 @@ export default function ApprovalsPage() {
   const handleReject = async (userId: number) => {
     if (actionLoading) return;
     if (!confirm("정말 거절하시겠습니까? 해당 계정이 삭제됩니다.")) return;
-    setActionLoading(userId);
+    setActionLoading({ id: userId, type: "reject" });
     try {
       await rejectProjectOwner(userId);
       setRequests((prev) => prev.filter((r) => r.id !== userId));
@@ -76,14 +80,6 @@ export default function ApprovalsPage() {
       setActionLoading(null);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="medium" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,7 +92,9 @@ export default function ApprovalsPage() {
         </Paragraph>
       </div>
 
-      {requests.length === 0 ? (
+      {loading ? (
+        <ApprovalGridSkeleton count={3} />
+      ) : requests.length === 0 ? (
         <Empty
           title="대기 중인 요청이 없습니다"
           description="새로운 프로젝트 오너 가입 요청이 들어오면 여기에 표시됩니다."
@@ -148,8 +146,11 @@ export default function ApprovalsPage() {
                   variant="primary"
                   size="small"
                   fullWidth
-                  loading={actionLoading === req.id}
-                  disabled={actionLoading === req.id}
+                  loading={
+                    actionLoading?.id === req.id &&
+                    actionLoading?.type === "approve"
+                  }
+                  disabled={actionLoading?.id === req.id}
                   onClick={() => handleApprove(req.id)}
                 >
                   승인
@@ -158,7 +159,11 @@ export default function ApprovalsPage() {
                   variant="danger"
                   size="small"
                   fullWidth
-                  disabled={actionLoading === req.id}
+                  loading={
+                    actionLoading?.id === req.id &&
+                    actionLoading?.type === "reject"
+                  }
+                  disabled={actionLoading?.id === req.id}
                   onClick={() => handleReject(req.id)}
                 >
                   거절
