@@ -74,9 +74,12 @@ export function InstancesTable() {
   }, [expireAlerted, addNotification]);
 
   useEffect(() => {
-    fetchVms();
+    const initial = setTimeout(fetchVms, 0);
     const interval = setInterval(fetchVms, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, [fetchVms]);
 
   const handleAction = async (vm: VmInfo, action: string) => {
@@ -129,15 +132,15 @@ export function InstancesTable() {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
         {vms.map((vm) => {
           const status = (vm.status || "stopped") as InstanceStatus;
           const key = `${vm.node}-${vm.vmid}`;
           const isActioning = actionLoading === key;
 
           return (
-            <Card key={key} elevation="low" padding="medium">
-              <div className="flex items-start justify-between gap-3">
+            <Card key={key} padding="large">
+              <div className="flex min-h-[48px] items-start justify-between gap-4">
                 <Link
                   href={`/instances/${vm.vmid}?node=${vm.node}`}
                   className="min-w-0 flex-1"
@@ -149,10 +152,10 @@ export function InstancesTable() {
                     VMID: {vm.vmid} · {vm.node}
                   </Text>
                 </Link>
-                <div className="flex items-center gap-1.5">
+                <div className="flex shrink-0 items-center gap-1.5">
                   <StatusBadge status={status} />
                   {vm.provisioning && (
-                    <Badge variant="weak" color="yellow" size="xsmall">
+                    <Badge variant="weak" color="yellow" size="small">
                       설정 중
                     </Badge>
                   )}
@@ -180,7 +183,7 @@ export function InstancesTable() {
                 <Stat label="가동 시간" value={formatUptime(vm.uptime)} />
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+              <div className="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-[#eef0f2] pt-4">
                 {status === "stopped" ? (
                   <Button
                     variant="secondary"
@@ -271,7 +274,7 @@ export function InstancesTable() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex min-h-[64px] flex-col justify-center gap-1 rounded-md border border-[#eef0f2] bg-[#f9fafb] px-3 py-2">
       <Text size="xs" tone="muted" weight="medium">
         {label}
       </Text>

@@ -41,9 +41,9 @@ export default function DashboardLayout({
           onMobileClose={() => setSidebarOpen(false)}
         />
       </Suspense>
-      <div className="md:pl-56">
+      <div className="min-h-screen bg-[#f2f4f6] md:pl-56">
         <TopNavbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="p-4 md:p-8">{children}</main>
       </div>
     </>
   );
