@@ -1,20 +1,20 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import {
-  BottomInfo,
   Button,
   Link as ZmLink,
-  SegmentedControl,
   Spinner,
+  Tab,
   TextField,
 } from "@zaemoru/react";
 
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/lib/toast-context";
 import { AuthShell } from "@/components/auth/auth-shell";
 
 export default function LoginPage() {
@@ -33,24 +33,33 @@ export default function LoginPage() {
 
 function LoginContent() {
   const { login } = useAuth();
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   const isPending = searchParams.get("pending") === "true";
 
   const [loginRole, setLoginRole] = useState<"user" | "project_owner">("user");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  useEffect(() => {
+    if (isPending) {
+      toast(
+        "warning",
+        "이메일 인증이 완료되었습니다. 관리자 승인 후 로그인이 가능합니다.",
+      );
+    }
+  }, [isPending, toast]);
+
+  const handleSubmit = async () => {
+    if (loading) return;
     setLoading(true);
     try {
       await login(email, password, loginRole);
       sessionStorage.setItem("notif:login", "true");
     } catch (err) {
-      setError(
+      toast(
+        "danger",
         err instanceof ApiError ? err.detail : "로그인 중 오류가 발생했습니다.",
       );
     } finally {
@@ -60,28 +69,23 @@ function LoginContent() {
 
   return (
     <AuthShell title="로그인" description="GSMSV 계정으로 로그인하세요">
-      <SegmentedControl
+      <Tab
         fullWidth
+        variant="filled"
         value={loginRole}
-        options={[
+        items={[
           { value: "user", label: "일반" },
           { value: "project_owner", label: "프로젝트 오너" },
         ]}
-        onChange={(value) => {
-          setLoginRole(value as "user" | "project_owner");
-          setError("");
-        }}
+        onChange={(value) => setLoginRole(value as "user" | "project_owner")}
       />
 
-      {isPending && (
-        <BottomInfo tone="warning">
-          이메일 인증이 완료되었습니다. 관리자 승인 후 로그인이 가능합니다.
-        </BottomInfo>
-      )}
-
-      {error && <BottomInfo tone="danger">{error}</BottomInfo>}
-
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div
+        className="flex flex-col gap-4"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSubmit();
+        }}
+      >
         <TextField
           label="이메일"
           type="email"
@@ -90,7 +94,7 @@ function LoginContent() {
           placeholder="your@gsm.hs.kr"
           autoComplete="email"
           size="large"
-          onChange={(value) => setEmail(value)}
+          onInput={(value) => setEmail(value)}
         />
         <TextField
           label="비밀번호"
@@ -100,24 +104,24 @@ function LoginContent() {
           placeholder="비밀번호를 입력하세요"
           autoComplete="current-password"
           size="large"
-          onChange={(value) => setPassword(value)}
+          onInput={(value) => setPassword(value)}
         />
         <Button
-          type="submit"
           variant="primary"
           size="large"
           fullWidth
           loading={loading}
           disabled={loading}
+          onClick={handleSubmit}
         >
           로그인
         </Button>
-      </form>
+      </div>
 
       <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-[var(--color-border-subtle,#e5e5e5)]" />
-        <span className="text-xs text-[var(--color-text-muted,#999)]">또는</span>
-        <div className="h-px flex-1 bg-[var(--color-border-subtle,#e5e5e5)]" />
+        <div className="h-px flex-1 bg-(--zm-color-border-subtle,#e5e7eb)" />
+        <span className="text-xs text-(--zm-color-text-muted,#94a3b8)">또는</span>
+        <div className="h-px flex-1 bg-(--zm-color-border-subtle,#e5e7eb)" />
       </div>
 
       <Button

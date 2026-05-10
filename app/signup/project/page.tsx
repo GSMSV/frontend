@@ -48,8 +48,8 @@ export default function ProjectSignupPage() {
 
   const [error, setError] = useState("");
 
-  const handleCheckEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCheckEmail = async () => {
+    if (checkLoading) return;
     setError("");
     setCheckLoading(true);
     try {
@@ -69,8 +69,8 @@ export default function ProjectSignupPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (submitLoading) return;
     setError("");
     if (password !== confirmPassword) {
       setError("비밀번호가 일치하지 않습니다.");
@@ -121,7 +121,12 @@ export default function ProjectSignupPage() {
 
       {step === "email" && (
         <div className="flex flex-col gap-4">
-          <form onSubmit={handleCheckEmail} className="flex flex-col gap-4">
+          <div
+            className="flex flex-col gap-4"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && projects.length === 0) handleCheckEmail();
+            }}
+          >
             <TextField
               label="이메일"
               type="email"
@@ -137,17 +142,17 @@ export default function ProjectSignupPage() {
             />
             {projects.length === 0 && (
               <Button
-                type="submit"
                 variant="primary"
                 size="large"
                 fullWidth
                 loading={checkLoading}
                 disabled={checkLoading || !email}
+                onClick={handleCheckEmail}
               >
                 프로젝트 조회
               </Button>
             )}
-          </form>
+          </div>
 
           {projects.length > 0 && (
             <div className="flex flex-col gap-3">
@@ -233,7 +238,12 @@ export default function ProjectSignupPage() {
             <span>{email}</span>
           </BottomInfo>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div
+            className="flex flex-col gap-4"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSubmit();
+            }}
+          >
             <div className="flex flex-col gap-2">
               <TextField
                 label="비밀번호"
@@ -284,17 +294,17 @@ export default function ProjectSignupPage() {
                 이전
               </Button>
               <Button
-                type="submit"
                 variant="primary"
                 size="large"
                 fullWidth
                 loading={submitLoading}
                 disabled={submitLoading}
+                onClick={handleSubmit}
               >
                 신청하기
               </Button>
             </div>
-          </form>
+          </div>
         </div>
       )}
     </AuthShell>

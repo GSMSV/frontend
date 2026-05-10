@@ -48,8 +48,8 @@ function VerifyContent() {
     return () => clearTimeout(t);
   }, [resendCooldown]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (loading) return;
     setError("");
     if (code.length !== 6) {
       setError("6자리 인증 코드를 모두 입력해주세요.");
@@ -99,7 +99,12 @@ function VerifyContent() {
     >
       {error && <BottomInfo tone="danger">{error}</BottomInfo>}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div
+        className="flex flex-col gap-4"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSubmit();
+        }}
+      >
         <div className="flex justify-center">
           <InputOtp
             parts={6}
@@ -111,16 +116,16 @@ function VerifyContent() {
           />
         </div>
         <Button
-          type="submit"
           variant="primary"
           size="large"
           fullWidth
           loading={loading}
           disabled={loading || code.length !== 6}
+          onClick={handleSubmit}
         >
           인증 완료
         </Button>
-      </form>
+      </div>
 
       <div className="flex justify-center">
         <TextButton

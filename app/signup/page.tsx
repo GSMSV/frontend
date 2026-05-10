@@ -27,8 +27,8 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (loading) return;
     setError("");
 
     if (password !== confirmPassword) {
@@ -62,7 +62,12 @@ export default function SignupPage() {
     >
       {error && <BottomInfo tone="danger">{error}</BottomInfo>}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div
+        className="flex flex-col gap-4"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSubmit();
+        }}
+      >
         <TextField
           label="이메일"
           type="email"
@@ -105,16 +110,16 @@ export default function SignupPage() {
           onChange={(value) => setConfirmPassword(value)}
         />
         <Button
-          type="submit"
           variant="primary"
           size="large"
           fullWidth
           loading={loading}
           disabled={loading}
+          onClick={handleSubmit}
         >
           계정 만들기
         </Button>
-      </form>
+      </div>
 
       <div className="flex flex-col items-center gap-2 text-sm">
         <span>
