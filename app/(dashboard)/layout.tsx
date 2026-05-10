@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+export const dynamic = "force-dynamic";
+
+import { Suspense, useEffect, useState } from "react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { TopNavbar } from "@/components/dashboard/top-navbar";
@@ -33,10 +35,12 @@ export default function DashboardLayout({
   return (
     <>
       <SessionNotificationHandler />
-      <Sidebar
-        mobileOpen={sidebarOpen}
-        onMobileClose={() => setSidebarOpen(false)}
-      />
+      <Suspense fallback={<aside className="fixed left-0 top-0 hidden h-screen w-56 border-r bg-[var(--zm-color-bg-canvas,#fafafa)] md:block" />}>
+        <Sidebar
+          mobileOpen={sidebarOpen}
+          onMobileClose={() => setSidebarOpen(false)}
+        />
+      </Suspense>
       <div className="md:pl-56">
         <TopNavbar onMenuClick={() => setSidebarOpen(true)} />
         <main className="p-4 md:p-6">{children}</main>
