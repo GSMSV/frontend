@@ -11,7 +11,6 @@ import {
   Empty,
   Heading,
   Paragraph,
-  Spinner,
   Text,
   TextField,
 } from "@zaemoru/react";
@@ -20,6 +19,7 @@ import { type VmInfo, controlVm, deleteVm, getMyVms } from "@/lib/api";
 import { useNotifications } from "@/lib/notification-context";
 import type { InstanceStatus } from "@/lib/types";
 
+import { InstanceGridSkeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "./status-badge";
 
 function formatUptime(seconds?: number): string {
@@ -39,7 +39,10 @@ function formatBytes(bytes?: number): string {
 export function InstancesTable() {
   const [vms, setVms] = useState<VmInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<{
+    key: string;
+    action: "start" | "shutdown" | "reboot" | "delete";
+  } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<VmInfo | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const { addNotification } = useNotifications();
@@ -82,9 +85,12 @@ export function InstancesTable() {
     };
   }, [fetchVms]);
 
-  const handleAction = async (vm: VmInfo, action: string) => {
+  const handleAction = async (
+    vm: VmInfo,
+    action: "start" | "shutdown" | "reboot",
+  ) => {
     const key = `${vm.node}-${vm.vmid}`;
-    setActionLoading(key);
+    setActionLoading({ key, action });
     try {
       await controlVm(vm.node, vm.vmid, action);
       setTimeout(fetchVms, 1500);
@@ -97,7 +103,8 @@ export function InstancesTable() {
 
   const handleDelete = async (vm: VmInfo) => {
     setDeleteTarget(null);
-    setActionLoading(`${vm.node}-${vm.vmid}`);
+    const key = `${vm.node}-${vm.vmid}`;
+    setActionLoading({ key, action: "delete" });
     try {
       await deleteVm(vm.node, vm.vmid);
       setVms((prev) => prev.filter((v) => v.vmid !== vm.vmid));
@@ -110,11 +117,7 @@ export function InstancesTable() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="medium" />
-      </div>
-    );
+    return <InstanceGridSkeleton count={3} />;
   }
 
   if (vms.length === 0) {
@@ -136,7 +139,9 @@ export function InstancesTable() {
         {vms.map((vm) => {
           const status = (vm.status || "stopped") as InstanceStatus;
           const key = `${vm.node}-${vm.vmid}`;
-          const isActioning = actionLoading === key;
+          const isActioning = actionLoading?.key === key;
+          const activeAction =
+            actionLoading?.key === key ? actionLoading.action : null;
 
           return (
             <Card key={key} padding="large">
@@ -189,7 +194,7 @@ export function InstancesTable() {
                     variant="secondary"
                     size="small"
                     disabled={isActioning}
-                    loading={isActioning}
+                    loading={activeAction === "start"}
                     onClick={() => handleAction(vm, "start")}
                   >
                     시작
@@ -199,7 +204,7 @@ export function InstancesTable() {
                     variant="secondary"
                     size="small"
                     disabled={isActioning}
-                    loading={isActioning}
+                    loading={activeAction === "shutdown"}
                     onClick={() => handleAction(vm, "shutdown")}
                   >
                     중지
@@ -209,6 +214,7 @@ export function InstancesTable() {
                   variant="secondary"
                   size="small"
                   disabled={isActioning}
+                  loading={activeAction === "reboot"}
                   onClick={() => handleAction(vm, "reboot")}
                 >
                   재시작
@@ -217,6 +223,7 @@ export function InstancesTable() {
                   variant="danger"
                   size="small"
                   disabled={isActioning}
+                  loading={activeAction === "delete"}
                   onClick={() => {
                     setDeleteTarget(vm);
                     setDeleteConfirmName("");

@@ -3,12 +3,13 @@
 import { Suspense, use, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { Spinner, Text } from "@zaemoru/react";
+import { Text } from "@zaemoru/react";
 
 import { type PortInfo, getVmPorts, getVmStatus } from "@/lib/api";
 import type { Instance, VmStatusResponse } from "@/lib/types";
 
 import { Callout } from "@/components/ui/callout";
+import { InstanceDetailSkeleton } from "@/components/ui/skeleton";
 import { InstanceHeader } from "@/components/instances/instance-header";
 import { InstanceTabs } from "@/components/instances/instance-tabs";
 
@@ -74,11 +75,7 @@ function InstanceDetailContent({ id }: { id: string }) {
   }, [id, node]);
 
   if (loading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Spinner size="medium" />
-      </div>
-    );
+    return <InstanceDetailSkeleton />;
   }
 
   if (error || !instance) {
@@ -110,13 +107,7 @@ export default function InstanceDetailPage({
 }) {
   const { id } = use(params);
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-[50vh] items-center justify-center">
-          <Spinner size="medium" />
-        </div>
-      }
-    >
+    <Suspense fallback={<InstanceDetailSkeleton />}>
       <InstanceDetailContent id={id} />
     </Suspense>
   );
