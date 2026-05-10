@@ -15,6 +15,8 @@ import {
   TextField,
 } from "@zaemoru/react";
 
+import { RowListSkeleton } from "@/components/ui/skeleton";
+
 import {
   type PortInfo,
   type VmPort,
@@ -138,9 +140,7 @@ export function FirewallTab({
 
         <div className="mt-3 flex flex-col gap-2">
           {loading ? (
-            <div className="flex justify-center py-4">
-              <Spinner size="small" />
-            </div>
+            <RowListSkeleton count={3} />
           ) : customPorts.length === 0 ? (
             <Text size="sm" tone="muted">
               포트포워딩 정보가 없습니다.
@@ -213,9 +213,7 @@ export function FirewallTab({
 
         <div className="mt-3 flex flex-col gap-2">
           {loading ? (
-            <div className="flex justify-center py-4">
-              <Spinner size="small" />
-            </div>
+            <RowListSkeleton count={3} />
           ) : customPorts.length === 0 ? (
             <Text size="sm" tone="muted">
               포트 규칙이 없습니다.
@@ -255,7 +253,11 @@ export function FirewallTab({
                     disabled={deletingId === p.id}
                     onClick={() => handleDelete(p.id)}
                   >
-                    {deletingId === p.id ? "..." : <TrashIcon />}
+                    {deletingId === p.id ? (
+                      <Spinner size="small" />
+                    ) : (
+                      <TrashIcon />
+                    )}
                   </IconButton>
                 </div>
               </div>

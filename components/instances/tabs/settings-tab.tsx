@@ -9,7 +9,6 @@ import {
   Heading,
   Paragraph,
   Slider,
-  Spinner,
   Tag,
   Text,
   TextField,
@@ -30,6 +29,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
 import type { Instance } from "@/lib/types";
 import { PlusIcon } from "@/components/ui/icons";
+import { RowListSkeleton } from "@/components/ui/skeleton";
 
 export function SettingsTab({ instance }: { instance: Instance }) {
   const { user } = useAuth();
@@ -120,6 +120,10 @@ export function SettingsTab({ instance }: { instance: Instance }) {
   const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([]);
   const [snapLoading, setSnapLoading] = useState(true);
   const [snapActionLoading, setSnapActionLoading] = useState(false);
+  const [snapActionTarget, setSnapActionTarget] = useState<{
+    name: string;
+    type: "rollback" | "delete";
+  } | null>(null);
   const [newSnapName, setNewSnapName] = useState("");
   const [showCreateInput, setShowCreateInput] = useState(false);
   const [rollbackTarget, setRollbackTarget] = useState<string | null>(null);
@@ -166,6 +170,7 @@ export function SettingsTab({ instance }: { instance: Instance }) {
   const handleRollback = async (snapname: string) => {
     setRollbackTarget(null);
     setSnapActionLoading(true);
+    setSnapActionTarget({ name: snapname, type: "rollback" });
     try {
       await rollbackSnapshot(instance.node, instance.vmid, snapname);
       addNotification("success", `스냅샷 '${snapname}'으로 복원되었습니다.`);
@@ -176,12 +181,14 @@ export function SettingsTab({ instance }: { instance: Instance }) {
       );
     } finally {
       setSnapActionLoading(false);
+      setSnapActionTarget(null);
     }
   };
 
   const handleDeleteSnap = async (snapname: string) => {
     setDeleteSnapTarget(null);
     setSnapActionLoading(true);
+    setSnapActionTarget({ name: snapname, type: "delete" });
     try {
       await deleteSnapshot(instance.node, instance.vmid, snapname);
       addNotification(
@@ -196,6 +203,7 @@ export function SettingsTab({ instance }: { instance: Instance }) {
       );
     } finally {
       setSnapActionLoading(false);
+      setSnapActionTarget(null);
     }
   };
 
@@ -275,9 +283,7 @@ export function SettingsTab({ instance }: { instance: Instance }) {
 
         <div className="mt-3 flex flex-col gap-2">
           {snapLoading ? (
-            <div className="flex justify-center py-4">
-              <Spinner size="small" />
-            </div>
+            <RowListSkeleton count={2} />
           ) : snapshots.length === 0 ? (
             <Text size="sm" tone="muted">
               생성된 스냅샷이 없습니다.
@@ -308,6 +314,10 @@ export function SettingsTab({ instance }: { instance: Instance }) {
                       variant="secondary"
                       size="small"
                       disabled={snapActionLoading}
+                      loading={
+                        snapActionTarget?.name === snap.name &&
+                        snapActionTarget?.type === "rollback"
+                      }
                       onClick={() => setRollbackTarget(snap.name)}
                     >
                       복원
@@ -316,6 +326,10 @@ export function SettingsTab({ instance }: { instance: Instance }) {
                       variant="danger"
                       size="small"
                       disabled={snapActionLoading}
+                      loading={
+                        snapActionTarget?.name === snap.name &&
+                        snapActionTarget?.type === "delete"
+                      }
                       onClick={() => setDeleteSnapTarget(snap.name)}
                     >
                       삭제
