@@ -270,11 +270,8 @@ export function DeployWizard() {
       {step === 1 && (
         <Card elevation="low" padding="medium">
           <Heading level="3" size="md">
-            운영체제 선택
+            인스턴스에 설치할 운영체제를 골라주세요.
           </Heading>
-          <Paragraph size="sm" tone="muted">
-            인스턴스에 설치할 운영체제를 선택하세요.
-          </Paragraph>
           <div className="mt-3 flex flex-col gap-2">
             {osOptions.map((os) => (
               <ListRow
@@ -302,11 +299,8 @@ export function DeployWizard() {
       {step === 2 && (
         <Card elevation="low" padding="medium">
           <Heading level="3" size="md">
-            노드 선택
+            인스턴스를 배포할 서버 노드를 골라주세요.
           </Heading>
-          <Paragraph size="sm" tone="muted">
-            인스턴스를 배포할 서버 노드를 선택하세요.
-          </Paragraph>
           <div className="mt-3 flex flex-col gap-2">
             {availableNodes.map((node) => {
               const res = nodeResources[node.id];
@@ -337,11 +331,8 @@ export function DeployWizard() {
       {step === 3 && (
         <Card elevation="low" padding="medium">
           <Heading level="3" size="md">
-            사양 선택
+            인스턴스의 컴퓨팅 리소스 사양을 골라주세요.
           </Heading>
-          <Paragraph size="sm" tone="muted">
-            인스턴스의 컴퓨팅 리소스를 선택하세요.
-          </Paragraph>
           <div className="mt-3 flex flex-col gap-2">
             {availableTiers.map((tier) => (
               <ListRow
@@ -418,11 +409,8 @@ export function DeployWizard() {
       {step === 4 && (
         <Card elevation="low" padding="medium">
           <Heading level="3" size="md">
-            최종 확인 및 생성
+            마지막으로 설정을 확인하고, 인스턴스 이름을 알려주세요!
           </Heading>
-          <Paragraph size="sm" tone="muted">
-            설정 내용을 확인하고 인스턴스 이름을 입력하세요.
-          </Paragraph>
 
           <div className="mt-3 flex flex-col gap-3">
             <TextField
