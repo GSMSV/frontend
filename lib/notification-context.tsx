@@ -5,15 +5,16 @@ import {
   useContext,
   useState,
   useCallback,
-  useEffect,
+  useMemo,
   type ReactNode,
 } from "react";
+
+import type { NotificationItem } from "@/lib/api";
 import {
-  getNotifications as fetchNotificationsApi,
-  markAllNotificationsRead,
-  deleteNotification as deleteNotificationApi,
-  type NotificationItem,
-} from "@/lib/api";
+  useDeleteNotification,
+  useMarkAllNotificationsRead,
+  useNotificationsQuery,
+} from "@/lib/queries";
 
 export type NotificationType = "info" | "success" | "error";
 
@@ -44,71 +45,75 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { data: remoteData = [], refetch } = useNotificationsQuery();
+  const deleteRemote = useDeleteNotification();
+  const markAllRead = useMarkAllNotificationsRead();
 
-  const refreshNotifications = useCallback(async () => {
-    try {
-      const data = await fetchNotificationsApi();
-      setNotifications(
-        data.map((n: NotificationItem) => ({
-          id: n.id,
-          type: n.type as NotificationType,
-          message: n.message,
-          timestamp: new Date(n.created_at),
-          read: n.is_read,
-        })),
-      );
-    } catch {
-      // 로그인 전이면 무시
-    }
-  }, []);
+  const [localNotifications, setLocalNotifications] = useState<Notification[]>(
+    [],
+  );
+  const [readSnapshot, setReadSnapshot] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    const initial = setTimeout(refreshNotifications, 0);
-    const interval = setInterval(refreshNotifications, 30000);
-    return () => {
-      clearTimeout(initial);
-      clearInterval(interval);
-    };
-  }, [refreshNotifications]);
+  const remoteNotifications: Notification[] = useMemo(
+    () =>
+      remoteData.map((n: NotificationItem) => ({
+        id: n.id,
+        type: n.type as NotificationType,
+        message: n.message,
+        timestamp: new Date(n.created_at),
+        read: n.is_read || readSnapshot.has(n.id),
+      })),
+    [remoteData, readSnapshot],
+  );
+
+  const notifications = useMemo(
+    () => [...localNotifications, ...remoteNotifications],
+    [localNotifications, remoteNotifications],
+  );
 
   const addNotification = useCallback(
     (type: NotificationType, message: string) => {
-      const newNotif: Notification = {
-        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        type,
-        message,
-        timestamp: new Date(),
-        read: false,
-      };
-      setNotifications((prev) => [newNotif, ...prev]);
+      setLocalNotifications((prev) => [
+        {
+          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          type,
+          message,
+          timestamp: new Date(),
+          read: false,
+        },
+        ...prev,
+      ]);
     },
     [],
   );
 
-  const removeNotification = useCallback(async (id: number | string) => {
-    if (typeof id === "number") {
-      try {
-        await deleteNotificationApi(id);
-      } catch {
-        /* ignore */
+  const removeNotification = useCallback(
+    (id: number | string) => {
+      if (typeof id === "number") {
+        deleteRemote.mutate(id);
+      } else {
+        setLocalNotifications((prev) => prev.filter((n) => n.id !== id));
       }
-    }
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  }, []);
+    },
+    [deleteRemote],
+  );
 
   const markAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+    setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setReadSnapshot(
+      (prev) =>
+        new Set([...prev, ...remoteData.map((n: NotificationItem) => n.id)]),
+    );
+  }, [remoteData]);
 
-  const deleteAll = useCallback(async () => {
-    try {
-      await markAllNotificationsRead();
-    } catch {
-      /* ignore */
-    }
-    setNotifications([]);
-  }, []);
+  const deleteAll = useCallback(() => {
+    setLocalNotifications([]);
+    markAllRead.mutate();
+  }, [markAllRead]);
+
+  const refreshNotifications = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const hasUnread = notifications.some((n) => !n.read);
 
