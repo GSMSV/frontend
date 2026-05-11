@@ -1,18 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { Heading, Spinner, Text } from "@zaemoru/react";
 
-import {
-  type AdminNodeVms,
-  type VmInfo,
-  getAllVms,
-  getMyVms,
-} from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useAllVms, useMyVms } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import {
   ChevronDownIcon,
@@ -98,10 +93,18 @@ export function Sidebar({
   const currentNode = searchParams.get("node");
   const { user, loading: authLoading } = useAuth();
   const isAdmin = user?.role === "admin";
+  const authReady = !authLoading && !!user;
 
-  const [vms, setVms] = useState<VmInfo[]>([]);
-  const [adminNodes, setAdminNodes] = useState<AdminNodeVms[]>([]);
-  const [vmLoading, setVmLoading] = useState(true);
+  const myVmsQuery = useMyVms(authReady && !isAdmin, 15_000);
+  const allVmsQuery = useAllVms(authReady && isAdmin, 15_000);
+  const vms = !isAdmin ? (myVmsQuery.data ?? []) : [];
+  const adminNodes = isAdmin ? (allVmsQuery.data ?? []) : [];
+  const vmLoading = !authReady
+    ? true
+    : isAdmin
+      ? allVmsQuery.isLoading
+      : myVmsQuery.isLoading;
+
   const [docsOpen, setDocsOpen] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
@@ -110,44 +113,6 @@ export function Sidebar({
     const initial = setTimeout(() => setDocsOpen(true), 0);
     return () => clearTimeout(initial);
   }, [pathname]);
-
-  const fetchVms = useCallback(async () => {
-    if (authLoading || !user) return;
-    setVmLoading(true);
-    try {
-      if (isAdmin) {
-        const data = await getAllVms();
-        setAdminNodes(data);
-        setVms([]);
-      } else {
-        const data = await getMyVms();
-        setVms(data);
-        setAdminNodes([]);
-      }
-    } catch {
-      /* ignore */
-    } finally {
-      setVmLoading(false);
-    }
-  }, [authLoading, isAdmin, user]);
-
-  useEffect(() => {
-    if (authLoading || !user) {
-      const reset = setTimeout(() => {
-        setVmLoading(true);
-        setVms([]);
-        setAdminNodes([]);
-      }, 0);
-      return () => clearTimeout(reset);
-    }
-
-    const initial = setTimeout(fetchVms, 0);
-    const interval = setInterval(fetchVms, 15000);
-    return () => {
-      clearTimeout(initial);
-      clearInterval(interval);
-    };
-  }, [authLoading, fetchVms, user]);
 
   const isItemActive = (href: string) => {
     if (href === "#") return false;
