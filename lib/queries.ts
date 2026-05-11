@@ -4,6 +4,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  type Query,
   type QueryKey,
 } from "@tanstack/react-query";
 
@@ -132,10 +133,15 @@ export function useNodesResources(enabled = true) {
   });
 }
 
+type RefetchInterval<T> =
+  | number
+  | false
+  | ((query: Query<T, Error, T, QueryKey>) => number | false | undefined);
+
 export function useVmStatus(
   node: string,
   vmid: number,
-  refetchInterval?: number,
+  refetchInterval?: RefetchInterval<VmStatusResponse>,
 ) {
   return useQuery<VmStatusResponse>({
     queryKey: queryKeys.vmStatus(node, vmid),
