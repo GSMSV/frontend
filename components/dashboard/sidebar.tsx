@@ -96,7 +96,7 @@ export function Sidebar({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentNode = searchParams.get("node");
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isAdmin = user?.role === "admin";
 
   const [vms, setVms] = useState<VmInfo[]>([]);
@@ -112,29 +112,42 @@ export function Sidebar({
   }, [pathname]);
 
   const fetchVms = useCallback(async () => {
+    if (authLoading || !user) return;
+    setVmLoading(true);
     try {
       if (isAdmin) {
         const data = await getAllVms();
         setAdminNodes(data);
+        setVms([]);
       } else {
         const data = await getMyVms();
         setVms(data);
+        setAdminNodes([]);
       }
     } catch {
       /* ignore */
     } finally {
       setVmLoading(false);
     }
-  }, [isAdmin]);
+  }, [authLoading, isAdmin, user]);
 
   useEffect(() => {
+    if (authLoading || !user) {
+      const reset = setTimeout(() => {
+        setVmLoading(true);
+        setVms([]);
+        setAdminNodes([]);
+      }, 0);
+      return () => clearTimeout(reset);
+    }
+
     const initial = setTimeout(fetchVms, 0);
     const interval = setInterval(fetchVms, 15000);
     return () => {
       clearTimeout(initial);
       clearInterval(interval);
     };
-  }, [fetchVms]);
+  }, [authLoading, fetchVms, user]);
 
   const isItemActive = (href: string) => {
     if (href === "#") return false;
