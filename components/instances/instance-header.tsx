@@ -15,24 +15,19 @@ import {
 
 import { useNotifications } from "@/lib/notification-context";
 import { useControlVm, useDeleteVm, useExtendVm } from "@/lib/queries";
-import type { Instance } from "@/lib/types";
+import type { Instance, VmAction } from "@/lib/types";
 import { ArrowLeftIcon } from "@/components/ui/icons";
 
 import { StatusBadge } from "./status-badge";
 
-export function InstanceHeader({
-  instance,
-  onRefresh,
-}: {
-  instance: Instance;
-  onRefresh?: () => void | Promise<void>;
-}) {
+type ActionKey = VmAction | "extend" | "delete";
+
+export function InstanceHeader({ instance }: { instance: Instance }) {
   const router = useRouter();
   const { addNotification } = useNotifications();
   const controlVm = useControlVm();
   const deleteVm = useDeleteVm();
   const extendVm = useExtendVm();
-  type ActionKey = "extend" | "start" | "shutdown" | "reboot" | "delete";
   const [actionLoading, setActionLoading] = useState<ActionKey | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
@@ -47,16 +42,6 @@ export function InstanceHeader({
     : null;
   const canExtend = daysUntilExpiry !== null && daysUntilExpiry <= 15;
 
-  // 액션 직후 백엔드 상태가 반영되도록 즉시·짧은 간격 추적 폴링
-  const triggerFollowUpRefresh = (action: ActionKey) => {
-    if (!onRefresh) return;
-    const delays =
-      action === "reboot"
-        ? [500, 3000, 8000, 15000, 25000]
-        : [500, 2000, 5000, 10000];
-    delays.forEach((ms) => setTimeout(() => onRefresh(), ms));
-  };
-
   const handleExtend = async () => {
     setActionLoading("extend");
     try {
@@ -65,7 +50,6 @@ export function InstanceHeader({
         vmid: instance.vmid,
       });
       addNotification("success", res.message);
-      await onRefresh?.();
     } catch (e) {
       addNotification(
         "error",
@@ -76,7 +60,7 @@ export function InstanceHeader({
     }
   };
 
-  const handleAction = async (action: "start" | "shutdown" | "reboot") => {
+  const handleAction = async (action: VmAction) => {
     if (anyActionRunning) return;
     setActionLoading(action);
     try {
@@ -85,8 +69,6 @@ export function InstanceHeader({
         vmid: instance.vmid,
         action,
       });
-      await onRefresh?.();
-      triggerFollowUpRefresh(action);
     } catch (e) {
       addNotification(
         "error",

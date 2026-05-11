@@ -95,15 +95,12 @@ export function Sidebar({
   const isAdmin = user?.role === "admin";
   const authReady = !authLoading && !!user;
 
-  const myVmsQuery = useMyVms(authReady && !isAdmin, 15_000);
-  const allVmsQuery = useAllVms(authReady && isAdmin, 15_000);
-  const vms = !isAdmin ? (myVmsQuery.data ?? []) : [];
+  const myVmsQuery = useMyVms(authReady && !isAdmin);
+  const allVmsQuery = useAllVms(authReady && isAdmin);
+  const activeQuery = isAdmin ? allVmsQuery : myVmsQuery;
+  const vms = isAdmin ? [] : (myVmsQuery.data ?? []);
   const adminNodes = isAdmin ? (allVmsQuery.data ?? []) : [];
-  const vmLoading = !authReady
-    ? true
-    : isAdmin
-      ? allVmsQuery.isLoading
-      : myVmsQuery.isLoading;
+  const vmLoading = !authReady || activeQuery.isLoading;
 
   const [docsOpen, setDocsOpen] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());

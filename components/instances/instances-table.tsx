@@ -18,24 +18,11 @@ import {
 import type { VmInfo } from "@/lib/api";
 import { useNotifications } from "@/lib/notification-context";
 import { useControlVm, useDeleteVm, useMyVms } from "@/lib/queries";
-import type { InstanceStatus } from "@/lib/types";
+import type { InstanceStatus, VmAction } from "@/lib/types";
+import { formatBytes, formatUptime } from "@/lib/utils";
 
 import { InstanceGridSkeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "./status-badge";
-
-function formatUptime(seconds?: number): string {
-  if (!seconds || seconds <= 0) return "-";
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return `${d}d ${h}h ${m}m`;
-}
-
-function formatBytes(bytes?: number): string {
-  if (!bytes) return "-";
-  const gb = bytes / (1024 * 1024 * 1024);
-  return gb >= 1 ? `${gb.toFixed(0)} GB` : `${(gb * 1024).toFixed(0)} MB`;
-}
 
 export function InstancesTable() {
   const { data: vms = [], isLoading: loading } = useMyVms(true, 15_000);
@@ -43,7 +30,7 @@ export function InstancesTable() {
   const deleteVm = useDeleteVm();
   const [actionLoading, setActionLoading] = useState<{
     key: string;
-    action: "start" | "shutdown" | "reboot" | "delete";
+    action: VmAction | "delete";
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<VmInfo | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
@@ -69,10 +56,7 @@ export function InstancesTable() {
     }
   }, [vms, addNotification]);
 
-  const handleAction = async (
-    vm: VmInfo,
-    action: "start" | "shutdown" | "reboot",
-  ) => {
+  const handleAction = async (vm: VmInfo, action: VmAction) => {
     const key = `${vm.node}-${vm.vmid}`;
     setActionLoading({ key, action });
     try {

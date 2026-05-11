@@ -1,13 +1,13 @@
 "use client";
 
 import { Suspense, use, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 
 import { Text } from "@zaemoru/react";
 
-import { queryKeys, useVmPorts, useVmStatus } from "@/lib/queries";
+import { useVmPorts, useVmStatus } from "@/lib/queries";
 import type { Instance } from "@/lib/types";
+import { formatBytes, formatUptime } from "@/lib/utils";
 
 import { Callout } from "@/components/ui/callout";
 import { InstanceDetailSkeleton } from "@/components/ui/skeleton";
@@ -17,25 +17,10 @@ import { InstanceTabs } from "@/components/instances/instance-tabs";
 const POLL_INTERVAL_MS = 10000;
 const PROVISIONING_POLL_INTERVAL_MS = 3000;
 
-function formatUptime(seconds?: number): string {
-  if (!seconds || seconds <= 0) return "-";
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return `${d}d ${h}h ${m}m`;
-}
-
-function formatBytes(bytes?: number): string {
-  if (!bytes) return "-";
-  const gb = bytes / (1024 * 1024 * 1024);
-  return gb >= 1 ? `${gb.toFixed(0)} GB` : `${(gb * 1024).toFixed(0)} MB`;
-}
-
 function InstanceDetailContent({ id }: { id: string }) {
   const searchParams = useSearchParams();
   const node = searchParams.get("node") || "";
   const vmid = parseInt(id);
-  const qc = useQueryClient();
 
   const statusQuery = useVmStatus(node, vmid, (query) =>
     query.state.data?.provisioning
@@ -76,11 +61,6 @@ function InstanceDetailContent({ id }: { id: string }) {
     };
   }, [status, node, vmid]);
 
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: queryKeys.vmStatus(node, vmid) });
-    qc.invalidateQueries({ queryKey: queryKeys.vmPorts(node, vmid) });
-  };
-
   if (loading) {
     return <InstanceDetailSkeleton />;
   }
@@ -95,7 +75,7 @@ function InstanceDetailContent({ id }: { id: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <InstanceHeader instance={instance} onRefresh={refresh} />
+      <InstanceHeader instance={instance} />
       {instance.provisioning && (
         <Callout tone="warning" title="초기 환경 설정 중">
           새 VM 의 cloud-init 프로비저닝이 완료될 때까지 SSH 접속을

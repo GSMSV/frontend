@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
   type Query,
+  type QueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
 
@@ -58,9 +59,7 @@ import {
   type VmInfo,
   type VmPort,
 } from "@/lib/api";
-import type { VmStatusResponse } from "@/lib/types";
-
-/* ----------------------------- Query keys ----------------------------- */
+import type { VmAction, VmStatusResponse } from "@/lib/types";
 
 export const queryKeys = {
   me: ["me"] as const,
@@ -85,7 +84,26 @@ export const queryKeys = {
   faqQuestions: ["faq"] as const,
 };
 
-/* ------------------------------- Queries ------------------------------ */
+function optimisticRemove<T, V>(
+  qc: QueryClient,
+  key: QueryKey,
+  predicate: (item: T, variables: V) => boolean,
+) {
+  return {
+    onMutate: async (variables: V) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<T[]>(key);
+      qc.setQueryData<T[]>(key, (old) =>
+        old ? old.filter((item) => !predicate(item, variables)) : old,
+      );
+      return { previous };
+    },
+    onError: (_err: unknown, _vars: V, ctx: { previous?: T[] } | undefined) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  };
+}
 
 export function useMe(enabled = true) {
   return useQuery({
@@ -103,6 +121,7 @@ export function useNotificationsQuery(enabled = true) {
     enabled,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
+    staleTime: 25_000,
   });
 }
 
@@ -112,6 +131,8 @@ export function useMyVms(enabled = true, refetchInterval?: number) {
     queryFn: getMyVms,
     enabled,
     refetchInterval,
+    refetchIntervalInBackground: false,
+    staleTime: 10_000,
   });
 }
 
@@ -121,6 +142,8 @@ export function useAllVms(enabled = true, refetchInterval?: number) {
     queryFn: getAllVms,
     enabled,
     refetchInterval,
+    refetchIntervalInBackground: false,
+    staleTime: 10_000,
   });
 }
 
@@ -148,6 +171,8 @@ export function useVmStatus(
     queryFn: () => getVmStatus(node, vmid),
     enabled: !!node && !!vmid,
     refetchInterval,
+    refetchIntervalInBackground: false,
+    staleTime: 2_000,
   });
 }
 
@@ -171,6 +196,8 @@ export function useVmMetrics(
     queryFn: () => getVmMetrics(node, vmid, timeframe),
     enabled: !!node && !!vmid && (options.enabled ?? true),
     refetchInterval: options.refetchInterval,
+    refetchIntervalInBackground: false,
+    staleTime: 5_000,
   });
 }
 
@@ -179,6 +206,7 @@ export function useCustomPorts(node: string, vmid: number) {
     queryKey: queryKeys.customPorts(node, vmid),
     queryFn: () => getCustomPorts(node, vmid),
     enabled: !!node && !!vmid,
+    staleTime: 30_000,
   });
 }
 
@@ -187,6 +215,7 @@ export function useFirewallRules(vmid: number) {
     queryKey: queryKeys.firewallRules(vmid),
     queryFn: () => getFirewallRules(vmid),
     enabled: !!vmid,
+    staleTime: 30_000,
   });
 }
 
@@ -195,6 +224,7 @@ export function useSnapshots(node: string, vmid: number) {
     queryKey: queryKeys.snapshots(node, vmid),
     queryFn: () => getSnapshots(node, vmid),
     enabled: !!node && !!vmid,
+    staleTime: 30_000,
   });
 }
 
@@ -212,6 +242,7 @@ export function usePendingApprovals(enabled = true) {
     queryKey: queryKeys.pendingApprovals,
     queryFn: getPendingApprovals,
     enabled,
+    staleTime: 30_000,
   });
 }
 
@@ -220,16 +251,11 @@ export function useFaqQuestions(enabled = true) {
     queryKey: queryKeys.faqQuestions,
     queryFn: getFaqQuestions,
     enabled,
+    staleTime: 30_000,
   });
 }
 
-/* ----------------------------- VM mutations ---------------------------- */
-
-function invalidateVm(
-  qc: ReturnType<typeof useQueryClient>,
-  node: string,
-  vmid: number,
-) {
+function invalidateVm(qc: QueryClient, node: string, vmid: number) {
   qc.invalidateQueries({ queryKey: queryKeys.myVms });
   qc.invalidateQueries({ queryKey: queryKeys.allVms });
   qc.invalidateQueries({ queryKey: queryKeys.vmStatus(node, vmid) });
@@ -245,19 +271,9 @@ export function useControlVm() {
     }: {
       node: string;
       vmid: number;
-      action: "start" | "shutdown" | "reboot";
+      action: VmAction;
     }) => controlVm(node, vmid, action),
-    onSuccess: (_data, { node, vmid, action }) => {
-      invalidateVm(qc, node, vmid);
-      // 백엔드 반영 지연 대응 — 액션별 follow-up refetch
-      const delays =
-        action === "reboot"
-          ? [3000, 8000, 15000, 25000]
-          : [2000, 5000, 10000];
-      delays.forEach((ms) =>
-        setTimeout(() => invalidateVm(qc, node, vmid), ms),
-      );
-    },
+    onSuccess: (_data, { node, vmid }) => invalidateVm(qc, node, vmid),
   });
 }
 
@@ -266,18 +282,11 @@ export function useDeleteVm() {
   return useMutation({
     mutationFn: ({ node, vmid }: { node: string; vmid: number }) =>
       deleteVm(node, vmid),
-    onMutate: async ({ vmid }) => {
-      await qc.cancelQueries({ queryKey: queryKeys.myVms });
-      const previous = qc.getQueryData<VmInfo[]>(queryKeys.myVms);
-      qc.setQueryData<VmInfo[]>(queryKeys.myVms, (old) =>
-        old ? old.filter((v) => v.vmid !== vmid) : old,
-      );
-      return { previous };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.previous)
-        qc.setQueryData(queryKeys.myVms, ctx.previous);
-    },
+    ...optimisticRemove<VmInfo, { node: string; vmid: number }>(
+      qc,
+      queryKeys.myVms,
+      (vm, { vmid }) => vm.vmid === vmid,
+    ),
     onSettled: (_data, _err, { node, vmid }) => invalidateVm(qc, node, vmid),
   });
 }
@@ -319,35 +328,15 @@ export function useCreateVm() {
   });
 }
 
-/* -------------------------- Approval mutations ------------------------- */
-
-function optimisticallyRemoveApproval(
-  qc: ReturnType<typeof useQueryClient>,
-  userId: number,
-) {
-  return async () => {
-    await qc.cancelQueries({ queryKey: queryKeys.pendingApprovals });
-    const previous = qc.getQueryData<PendingApproval[]>(
-      queryKeys.pendingApprovals,
-    );
-    qc.setQueryData<PendingApproval[]>(queryKeys.pendingApprovals, (old) =>
-      old ? old.filter((r) => r.id !== userId) : old,
-    );
-    return { previous };
-  };
-}
-
 export function useApproveProjectOwner() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (userId: number) => approveProjectOwner(userId),
-    onMutate: (userId) => optimisticallyRemoveApproval(qc, userId)(),
-    onError: (_err, _vars, ctx) => {
-      if (ctx && "previous" in ctx && ctx.previous)
-        qc.setQueryData(queryKeys.pendingApprovals, ctx.previous);
-    },
-    onSettled: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.pendingApprovals }),
+    ...optimisticRemove<PendingApproval, number>(
+      qc,
+      queryKeys.pendingApprovals,
+      (r, userId) => r.id === userId,
+    ),
   });
 }
 
@@ -355,38 +344,23 @@ export function useRejectProjectOwner() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (userId: number) => rejectProjectOwner(userId),
-    onMutate: (userId) => optimisticallyRemoveApproval(qc, userId)(),
-    onError: (_err, _vars, ctx) => {
-      if (ctx && "previous" in ctx && ctx.previous)
-        qc.setQueryData(queryKeys.pendingApprovals, ctx.previous);
-    },
-    onSettled: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.pendingApprovals }),
+    ...optimisticRemove<PendingApproval, number>(
+      qc,
+      queryKeys.pendingApprovals,
+      (r, userId) => r.id === userId,
+    ),
   });
 }
-
-/* ------------------------ Notification mutations ----------------------- */
 
 export function useDeleteNotification() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => deleteNotification(id),
-    onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: queryKeys.notifications });
-      const previous = qc.getQueryData<NotificationItem[]>(
-        queryKeys.notifications,
-      );
-      qc.setQueryData<NotificationItem[]>(queryKeys.notifications, (old) =>
-        old ? old.filter((n) => n.id !== id) : old,
-      );
-      return { previous };
-    },
-    onError: (_err, _id, ctx) => {
-      if (ctx?.previous)
-        qc.setQueryData(queryKeys.notifications, ctx.previous);
-    },
-    onSettled: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+    ...optimisticRemove<NotificationItem, number>(
+      qc,
+      queryKeys.notifications,
+      (n, id) => n.id === id,
+    ),
   });
 }
 
@@ -399,7 +373,9 @@ export function useMarkAllNotificationsRead() {
       const previous = qc.getQueryData<NotificationItem[]>(
         queryKeys.notifications,
       );
-      qc.setQueryData<NotificationItem[]>(queryKeys.notifications, []);
+      qc.setQueryData<NotificationItem[]>(queryKeys.notifications, (old) =>
+        old ? old.map((n) => ({ ...n, is_read: true })) : old,
+      );
       return { previous };
     },
     onError: (_err, _v, ctx) => {
@@ -410,8 +386,6 @@ export function useMarkAllNotificationsRead() {
       qc.invalidateQueries({ queryKey: queryKeys.notifications }),
   });
 }
-
-/* -------------------------- Firewall mutations ------------------------- */
 
 export function useAddCustomPort(node: string, vmid: number) {
   const qc = useQueryClient();
@@ -429,21 +403,13 @@ export function useAddCustomPort(node: string, vmid: number) {
 
 export function useDeleteCustomPort(node: string, vmid: number) {
   const qc = useQueryClient();
-  const key: QueryKey = queryKeys.customPorts(node, vmid);
   return useMutation({
     mutationFn: (portId: number) => deleteCustomPort(node, vmid, portId),
-    onMutate: async (portId) => {
-      await qc.cancelQueries({ queryKey: key });
-      const previous = qc.getQueryData<VmPort[]>(key);
-      qc.setQueryData<VmPort[]>(key, (old) =>
-        old ? old.filter((p) => p.id !== portId) : old,
-      );
-      return { previous };
-    },
-    onError: (_err, _portId, ctx) => {
-      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+    ...optimisticRemove<VmPort, number>(
+      qc,
+      queryKeys.customPorts(node, vmid),
+      (p, portId) => p.id === portId,
+    ),
   });
 }
 
@@ -475,8 +441,6 @@ export function useDeleteFirewallRule(vmid: number) {
   });
 }
 
-/* -------------------------- Snapshot mutations ------------------------- */
-
 export function useCreateSnapshot(node: string, vmid: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -495,21 +459,13 @@ export function useCreateSnapshot(node: string, vmid: number) {
 
 export function useDeleteSnapshot(node: string, vmid: number) {
   const qc = useQueryClient();
-  const key: QueryKey = queryKeys.snapshots(node, vmid);
   return useMutation({
     mutationFn: (snapname: string) => deleteSnapshot(node, vmid, snapname),
-    onMutate: async (snapname) => {
-      await qc.cancelQueries({ queryKey: key });
-      const previous = qc.getQueryData<SnapshotInfo[]>(key);
-      qc.setQueryData<SnapshotInfo[]>(key, (old) =>
-        old ? old.filter((s) => s.name !== snapname) : old,
-      );
-      return { previous };
-    },
-    onError: (_err, _name, ctx) => {
-      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+    ...optimisticRemove<SnapshotInfo, string>(
+      qc,
+      queryKeys.snapshots(node, vmid),
+      (s, snapname) => s.name === snapname,
+    ),
   });
 }
 
@@ -546,8 +502,6 @@ export function useToggleAutoSnapshot(node: string, vmid: number) {
   });
 }
 
-/* ----------------------------- FAQ mutations --------------------------- */
-
 export function useSubmitFaqQuestion() {
   const qc = useQueryClient();
   return useMutation({
@@ -571,26 +525,13 @@ export function useDeleteFaqQuestion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => deleteFaqQuestion(id),
-    onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: queryKeys.faqQuestions });
-      const previous = qc.getQueryData<FaqQuestionItem[]>(
-        queryKeys.faqQuestions,
-      );
-      qc.setQueryData<FaqQuestionItem[]>(queryKeys.faqQuestions, (old) =>
-        old ? old.filter((q) => q.id !== id) : old,
-      );
-      return { previous };
-    },
-    onError: (_err, _id, ctx) => {
-      if (ctx?.previous)
-        qc.setQueryData(queryKeys.faqQuestions, ctx.previous);
-    },
-    onSettled: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.faqQuestions }),
+    ...optimisticRemove<FaqQuestionItem, number>(
+      qc,
+      queryKeys.faqQuestions,
+      (q, id) => q.id === id,
+    ),
   });
 }
-
-/* ---------------------------- Avatar / Password ------------------------ */
 
 export function useUploadAvatar() {
   const qc = useQueryClient();

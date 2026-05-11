@@ -1,5 +1,7 @@
 export type InstanceStatus = "running" | "stopped" | "pending" | "error";
 
+export type VmAction = "start" | "shutdown" | "reboot";
+
 export interface VmStatusResponse {
   name?: string;
   status?: InstanceStatus;

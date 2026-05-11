@@ -2,10 +2,10 @@
 
 import {
   createContext,
-  useContext,
-  useState,
   useCallback,
+  useContext,
   useMemo,
+  useState,
   type ReactNode,
 } from "react";
 
@@ -39,20 +39,18 @@ interface NotificationContextType {
   removeNotification: (id: number | string) => void;
   markAsRead: () => void;
   deleteAll: () => void;
-  refreshNotifications: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { data: remoteData = [], refetch } = useNotificationsQuery();
+  const { data: remoteData = [] } = useNotificationsQuery();
   const deleteRemote = useDeleteNotification();
   const markAllRead = useMarkAllNotificationsRead();
 
   const [localNotifications, setLocalNotifications] = useState<Notification[]>(
     [],
   );
-  const [readSnapshot, setReadSnapshot] = useState<Set<number>>(new Set());
 
   const remoteNotifications: Notification[] = useMemo(
     () =>
@@ -61,9 +59,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         type: n.type as NotificationType,
         message: n.message,
         timestamp: new Date(n.created_at),
-        read: n.is_read || readSnapshot.has(n.id),
+        read: n.is_read,
       })),
-    [remoteData, readSnapshot],
+    [remoteData],
   );
 
   const notifications = useMemo(
@@ -100,20 +98,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const markAsRead = useCallback(() => {
     setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    setReadSnapshot(
-      (prev) =>
-        new Set([...prev, ...remoteData.map((n: NotificationItem) => n.id)]),
-    );
-  }, [remoteData]);
+    if (remoteNotifications.some((n) => !n.read)) {
+      markAllRead.mutate();
+    }
+  }, [markAllRead, remoteNotifications]);
 
   const deleteAll = useCallback(() => {
     setLocalNotifications([]);
     markAllRead.mutate();
   }, [markAllRead]);
-
-  const refreshNotifications = useCallback(() => {
-    refetch();
-  }, [refetch]);
 
   const hasUnread = notifications.some((n) => !n.read);
 
@@ -126,7 +119,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         removeNotification,
         markAsRead,
         deleteAll,
-        refreshNotifications,
       }}
     >
       {children}
