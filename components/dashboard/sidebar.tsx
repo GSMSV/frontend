@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
-import { Heading, Text } from "@zaemoru/react";
+import { Heading, Spinner, Text } from "@zaemoru/react";
 
 import {
   type AdminNodeVms,
@@ -18,7 +18,6 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
 } from "@/components/ui/icons";
-import { SidebarVmSkeleton } from "@/components/ui/skeleton";
 
 type NavItem = { title: string; href: string };
 
@@ -227,7 +226,9 @@ export function Sidebar({
 
         <Section title={isAdmin ? "Nodes" : "My VM"}>
           {vmLoading ? (
-            <SidebarVmSkeleton count={isAdmin ? 3 : 2} />
+            <div className="flex justify-center py-3">
+              <Spinner size="small" />
+            </div>
           ) : isAdmin ? (
             adminNodes.length === 0 ? (
               <Text size="sm" tone="muted">

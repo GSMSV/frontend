@@ -10,11 +10,10 @@ import {
   Empty,
   Heading,
   Paragraph,
+  Spinner,
   Tag,
   Text,
 } from "@zaemoru/react";
-
-import { ApprovalGridSkeleton } from "@/components/ui/skeleton";
 
 import {
   type PendingApproval,
@@ -93,7 +92,9 @@ export default function ApprovalsPage() {
       </div>
 
       {loading ? (
-        <ApprovalGridSkeleton count={3} />
+        <div className="flex justify-center py-8">
+          <Spinner size="medium" />
+        </div>
       ) : requests.length === 0 ? (
         <Empty
           title="대기 중인 요청이 없습니다"

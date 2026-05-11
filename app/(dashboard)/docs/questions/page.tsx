@@ -9,11 +9,10 @@ import {
   Card,
   Dialog,
   IconButton,
+  Spinner,
   Text,
   TextArea,
 } from "@zaemoru/react";
-
-import { QuestionListSkeleton } from "@/components/ui/skeleton";
 
 import {
   type FaqQuestionItem,
@@ -168,7 +167,9 @@ export default function QuestionsPage() {
 
       <div className="not-prose flex flex-col gap-3">
         {loading ? (
-          <QuestionListSkeleton count={3} />
+          <div className="flex justify-center py-8">
+            <Spinner size="medium" />
+          </div>
         ) : questions.length === 0 ? (
           <BottomInfo>아직 등록된 질문이 없습니다.</BottomInfo>
         ) : (

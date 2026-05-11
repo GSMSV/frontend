@@ -9,6 +9,7 @@ import {
   Heading,
   Paragraph,
   Slider,
+  Spinner,
   Tag,
   Text,
   TextField,
@@ -29,7 +30,6 @@ import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
 import type { Instance } from "@/lib/types";
 import { PlusIcon } from "@/components/ui/icons";
-import { RowListSkeleton } from "@/components/ui/skeleton";
 
 export function SettingsTab({ instance }: { instance: Instance }) {
   const { user } = useAuth();
@@ -283,7 +283,9 @@ export function SettingsTab({ instance }: { instance: Instance }) {
 
         <div className="mt-3 flex flex-col gap-2">
           {snapLoading ? (
-            <RowListSkeleton count={2} />
+            <div className="flex justify-center py-4">
+              <Spinner size="small" />
+            </div>
           ) : snapshots.length === 0 ? (
             <Text size="sm" tone="muted">
               생성된 스냅샷이 없습니다.
