@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   Badge,
@@ -14,14 +14,14 @@ import {
   TextArea,
 } from "@zaemoru/react";
 
-import {
-  type FaqQuestionItem,
-  answerFaqQuestion,
-  deleteFaqQuestion,
-  getFaqQuestions,
-  submitFaqQuestion,
-} from "@/lib/api";
+import type { FaqQuestionItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import {
+  useAnswerFaqQuestion,
+  useDeleteFaqQuestion,
+  useFaqQuestions,
+  useSubmitFaqQuestion,
+} from "@/lib/queries";
 
 import { DocsLayout } from "@/components/docs/docs-layout";
 import {
@@ -34,75 +34,55 @@ export default function QuestionsPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
-  const [questions, setQuestions] = useState<FaqQuestionItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [question, setQuestion] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
   const [answeringId, setAnsweringId] = useState<number | null>(null);
   const [answerText, setAnswerText] = useState("");
-  const [answerSubmitting, setAnswerSubmitting] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<FaqQuestionItem | null>(
     null,
   );
 
-  const fetchQuestions = useCallback(async () => {
-    try {
-      const data = await getFaqQuestions();
-      setQuestions(data);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const initial = setTimeout(fetchQuestions, 0);
-    return () => clearTimeout(initial);
-  }, [fetchQuestions]);
+  const questionsQuery = useFaqQuestions();
+  const submitFaqQuestion = useSubmitFaqQuestion();
+  const answerFaqQuestion = useAnswerFaqQuestion();
+  const deleteFaqQuestion = useDeleteFaqQuestion();
+  const questions = questionsQuery.data ?? [];
+  const loading = questionsQuery.isLoading;
+  const submitting = submitFaqQuestion.isPending;
+  const answerSubmitting = answerFaqQuestion.isPending;
 
   const handleSubmit = async () => {
     const trimmed = question.trim();
     if (!trimmed) return;
-    setSubmitting(true);
     setError("");
     try {
-      await submitFaqQuestion(trimmed);
+      await submitFaqQuestion.mutateAsync(trimmed);
       setSubmitted(true);
       setQuestion("");
-      fetchQuestions();
       setTimeout(() => setSubmitted(false), 3000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "질문 등록에 실패했습니다.");
-    } finally {
-      setSubmitting(false);
     }
   };
 
   const handleAnswer = async (id: number) => {
     if (!answerText.trim()) return;
-    setAnswerSubmitting(true);
     try {
-      await answerFaqQuestion(id, answerText.trim());
+      await answerFaqQuestion.mutateAsync({ id, answer: answerText.trim() });
       setAnsweringId(null);
       setAnswerText("");
-      fetchQuestions();
     } catch {
       /* ignore */
-    } finally {
-      setAnswerSubmitting(false);
     }
   };
 
   const handleDelete = async (item: FaqQuestionItem) => {
     try {
-      await deleteFaqQuestion(item.id);
+      await deleteFaqQuestion.mutateAsync(item.id);
       setDeleteTarget(null);
-      fetchQuestions();
     } catch {
       /* ignore */
     }

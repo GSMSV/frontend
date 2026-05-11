@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -22,11 +22,10 @@ import {
   ApiError,
   type NodeResources,
   type VmCreateResponse,
-  createVm,
-  getNodesResources,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
+import { useCreateVm, useNodesResources } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { CopiedIcon, CopyIcon } from "@/components/ui/icons";
 
@@ -126,18 +125,14 @@ export function DeployWizard() {
   const [customCores, setCustomCores] = useState(2);
   const [customMemory, setCustomMemory] = useState(2);
   const [customDisk, setCustomDisk] = useState(50);
-  const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<VmCreateResponse | null>(null);
-  const [nodeResources, setNodeResources] = useState<
-    Record<string, NodeResources>
-  >({});
 
-  useEffect(() => {
-    getNodesResources()
-      .then(setNodeResources)
-      .catch(() => {});
-  }, []);
+  const nodesResourcesQuery = useNodesResources();
+  const createVm = useCreateVm();
+  const nodeResources: Record<string, NodeResources> =
+    nodesResourcesQuery.data ?? {};
+  const creating = createVm.isPending;
 
   const userRole = user?.role ?? "user";
   const availableNodes = nodeOptions.filter((n) => n.roles.includes(userRole));
@@ -192,10 +187,9 @@ export function DeployWizard() {
       : null;
 
   const handleCreate = async () => {
-    setCreating(true);
     setError("");
     try {
-      const res = await createVm({
+      const res = await createVm.mutateAsync({
         tier: selectedTier as
           | "micro"
           | "small"
@@ -223,8 +217,6 @@ export function DeployWizard() {
           : "인스턴스 생성 중 오류가 발생했습니다.";
       setError(msg);
       addNotification("error", `VM 생성 실패: ${msg}`);
-    } finally {
-      setCreating(false);
     }
   };
 

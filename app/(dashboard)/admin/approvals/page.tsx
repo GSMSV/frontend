@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -15,50 +15,42 @@ import {
   Text,
 } from "@zaemoru/react";
 
-import {
-  type PendingApproval,
-  approveProjectOwner,
-  getPendingApprovals,
-  rejectProjectOwner,
-} from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import {
+  useApproveProjectOwner,
+  usePendingApprovals,
+  useRejectProjectOwner,
+} from "@/lib/queries";
 
 export default function ApprovalsPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [requests, setRequests] = useState<PendingApproval[]>([]);
-  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<{
     id: number;
     type: "approve" | "reject";
   } | null>(null);
 
-  const fetchRequests = useCallback(async () => {
-    try {
-      const data = await getPendingApprovals();
-      setRequests(data);
-    } catch {
-      router.push("/instances");
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
+  const requestsQuery = usePendingApprovals(user?.role === "admin");
+  const approveProjectOwner = useApproveProjectOwner();
+  const rejectProjectOwner = useRejectProjectOwner();
+  const requests = requestsQuery.data ?? [];
+  const loading = requestsQuery.isLoading;
 
   useEffect(() => {
     if (user && user.role !== "admin") {
       router.push("/instances");
-      return;
     }
-    const initial = setTimeout(fetchRequests, 0);
-    return () => clearTimeout(initial);
-  }, [user, router, fetchRequests]);
+  }, [user, router]);
+
+  useEffect(() => {
+    if (requestsQuery.isError) router.push("/instances");
+  }, [requestsQuery.isError, router]);
 
   const handleApprove = async (userId: number) => {
     if (actionLoading) return;
     setActionLoading({ id: userId, type: "approve" });
     try {
-      await approveProjectOwner(userId);
-      setRequests((prev) => prev.filter((r) => r.id !== userId));
+      await approveProjectOwner.mutateAsync(userId);
     } catch {
       /* ignore */
     } finally {
@@ -71,8 +63,7 @@ export default function ApprovalsPage() {
     if (!confirm("정말 거절하시겠습니까? 해당 계정이 삭제됩니다.")) return;
     setActionLoading({ id: userId, type: "reject" });
     try {
-      await rejectProjectOwner(userId);
-      setRequests((prev) => prev.filter((r) => r.id !== userId));
+      await rejectProjectOwner.mutateAsync(userId);
     } catch {
       /* ignore */
     } finally {

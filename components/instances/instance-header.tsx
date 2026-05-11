@@ -13,8 +13,8 @@ import {
   TextField,
 } from "@zaemoru/react";
 
-import { controlVm, deleteVm, extendVm } from "@/lib/api";
 import { useNotifications } from "@/lib/notification-context";
+import { useControlVm, useDeleteVm, useExtendVm } from "@/lib/queries";
 import type { Instance } from "@/lib/types";
 import { ArrowLeftIcon } from "@/components/ui/icons";
 
@@ -29,6 +29,9 @@ export function InstanceHeader({
 }) {
   const router = useRouter();
   const { addNotification } = useNotifications();
+  const controlVm = useControlVm();
+  const deleteVm = useDeleteVm();
+  const extendVm = useExtendVm();
   type ActionKey = "extend" | "start" | "shutdown" | "reboot" | "delete";
   const [actionLoading, setActionLoading] = useState<ActionKey | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -57,7 +60,10 @@ export function InstanceHeader({
   const handleExtend = async () => {
     setActionLoading("extend");
     try {
-      const res = await extendVm(instance.node, instance.vmid);
+      const res = await extendVm.mutateAsync({
+        node: instance.node,
+        vmid: instance.vmid,
+      });
       addNotification("success", res.message);
       await onRefresh?.();
     } catch (e) {
@@ -74,7 +80,11 @@ export function InstanceHeader({
     if (anyActionRunning) return;
     setActionLoading(action);
     try {
-      await controlVm(instance.node, instance.vmid, action);
+      await controlVm.mutateAsync({
+        node: instance.node,
+        vmid: instance.vmid,
+        action,
+      });
       await onRefresh?.();
       triggerFollowUpRefresh(action);
     } catch (e) {
@@ -92,7 +102,10 @@ export function InstanceHeader({
     setActionLoading("delete");
     setDeleteOpen(false);
     try {
-      await deleteVm(instance.node, instance.vmid);
+      await deleteVm.mutateAsync({
+        node: instance.node,
+        vmid: instance.vmid,
+      });
       router.push("/instances");
     } catch (e) {
       addNotification(

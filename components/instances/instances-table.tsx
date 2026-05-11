@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import {
@@ -49,11 +49,11 @@ export function InstancesTable() {
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const { addNotification } = useNotifications();
 
-  const [expireAlerted, setExpireAlerted] = useState<Set<number>>(new Set());
+  const expireAlerted = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     for (const vm of vms) {
-      if (vm.expires_at && !expireAlerted.has(vm.vmid)) {
+      if (vm.expires_at && !expireAlerted.current.has(vm.vmid)) {
         const days = Math.ceil(
           (new Date(vm.expires_at).getTime() - Date.now()) /
             (1000 * 60 * 60 * 24),
@@ -63,11 +63,11 @@ export function InstancesTable() {
             "error",
             `${vm.name}: 만료까지 ${days}일 남았습니다. 연장해주세요.`,
           );
-          setExpireAlerted((prev) => new Set(prev).add(vm.vmid));
+          expireAlerted.current.add(vm.vmid);
         }
       }
     }
-  }, [vms, expireAlerted, addNotification]);
+  }, [vms, addNotification]);
 
   const handleAction = async (
     vm: VmInfo,
