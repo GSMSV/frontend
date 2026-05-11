@@ -81,7 +81,8 @@ function InstanceDetailContent({ id }: { id: string }) {
   }, [id, node]);
 
   useEffect(() => {
-    fetchInstance();
+    const initial = setTimeout(fetchInstance, 0);
+    return () => clearTimeout(initial);
   }, [fetchInstance]);
 
   // 주기적 폴링 — provisioning 중에는 더 자주

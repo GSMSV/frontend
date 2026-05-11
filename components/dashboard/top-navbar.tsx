@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   Avatar,
   Badge,
-  Border,
   Card,
   IconButton,
   Paragraph,
@@ -216,7 +215,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
                   </button>
                 )}
               </div>
-              <Border />
+              <MenuDivider />
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-12">
                   <Paragraph size="sm" tone="muted">
@@ -302,7 +301,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
                   </Text>
                 </div>
               </div>
-              <Border />
+              <MenuDivider />
               <button
                 type="button"
                 onClick={() => {
@@ -313,7 +312,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
               >
                 설정
               </button>
-              <Border />
+              <MenuDivider />
               <button
                 type="button"
                 onClick={() => logout()}
@@ -326,5 +325,14 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
         </div>
       </div>
     </header>
+  );
+}
+
+function MenuDivider() {
+  return (
+    <div
+      className="h-px w-full bg-[var(--zm-color-border-subtle,#e5e8eb)]"
+      role="separator"
+    />
   );
 }
