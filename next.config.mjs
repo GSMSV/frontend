@@ -1,11 +1,46 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // RSC payload/client router cache TTL. Auth-sensitive data still comes from
+    // client-side React Query calls, so this only reuses route shells.
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
+  },
   images: {
     unoptimized: true,
   },
   async headers() {
     return [
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/uploads/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store",
+          },
+        ],
+      },
       {
         source: "/(.*)",
         headers: [
