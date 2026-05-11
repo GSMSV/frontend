@@ -93,9 +93,17 @@ export function InstancesTable() {
     setActionLoading({ key, action });
     try {
       await controlVm(vm.node, vm.vmid, action);
-      setTimeout(fetchVms, 1500);
-    } catch {
-      /* ignore */
+      await fetchVms();
+      const delays =
+        action === "reboot"
+          ? [3000, 8000, 15000, 25000]
+          : [2000, 5000, 10000];
+      delays.forEach((ms) => setTimeout(fetchVms, ms));
+    } catch (e) {
+      addNotification(
+        "error",
+        e instanceof Error ? e.message : "작업 요청 실패",
+      );
     } finally {
       setActionLoading(null);
     }

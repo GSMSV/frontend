@@ -20,7 +20,13 @@ import { ArrowLeftIcon } from "@/components/ui/icons";
 
 import { StatusBadge } from "./status-badge";
 
-export function InstanceHeader({ instance }: { instance: Instance }) {
+export function InstanceHeader({
+  instance,
+  onRefresh,
+}: {
+  instance: Instance;
+  onRefresh?: () => void | Promise<void>;
+}) {
   const router = useRouter();
   const { addNotification } = useNotifications();
   type ActionKey = "extend" | "start" | "shutdown" | "reboot" | "delete";
@@ -38,17 +44,28 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
     : null;
   const canExtend = daysUntilExpiry !== null && daysUntilExpiry <= 15;
 
+  // 액션 직후 백엔드 상태가 반영되도록 즉시·짧은 간격 추적 폴링
+  const triggerFollowUpRefresh = (action: ActionKey) => {
+    if (!onRefresh) return;
+    const delays =
+      action === "reboot"
+        ? [500, 3000, 8000, 15000, 25000]
+        : [500, 2000, 5000, 10000];
+    delays.forEach((ms) => setTimeout(() => onRefresh(), ms));
+  };
+
   const handleExtend = async () => {
     setActionLoading("extend");
     try {
       const res = await extendVm(instance.node, instance.vmid);
       addNotification("success", res.message);
-      setTimeout(() => window.location.reload(), 1000);
+      await onRefresh?.();
     } catch (e) {
       addNotification(
         "error",
         e instanceof Error ? e.message : "연장 실패",
       );
+    } finally {
       setActionLoading(null);
     }
   };
@@ -58,9 +75,14 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
     setActionLoading(action);
     try {
       await controlVm(instance.node, instance.vmid, action);
-      const cooldown = action === "reboot" ? 30000 : 5000;
-      setTimeout(() => window.location.reload(), cooldown);
-    } catch {
+      await onRefresh?.();
+      triggerFollowUpRefresh(action);
+    } catch (e) {
+      addNotification(
+        "error",
+        e instanceof Error ? e.message : "작업 요청 실패",
+      );
+    } finally {
       setActionLoading(null);
     }
   };
@@ -72,7 +94,11 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
     try {
       await deleteVm(instance.node, instance.vmid);
       router.push("/instances");
-    } catch {
+    } catch (e) {
+      addNotification(
+        "error",
+        e instanceof Error ? e.message : "삭제 실패",
+      );
       setActionLoading(null);
     }
   };
