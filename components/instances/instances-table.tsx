@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import {
@@ -15,8 +15,9 @@ import {
   TextField,
 } from "@zaemoru/react";
 
-import { type VmInfo, controlVm, deleteVm, getMyVms } from "@/lib/api";
+import type { VmInfo } from "@/lib/api";
 import { useNotifications } from "@/lib/notification-context";
+import { useControlVm, useDeleteVm, useMyVms } from "@/lib/queries";
 import type { InstanceStatus } from "@/lib/types";
 
 import { InstanceGridSkeleton } from "@/components/ui/skeleton";
@@ -37,8 +38,9 @@ function formatBytes(bytes?: number): string {
 }
 
 export function InstancesTable() {
-  const [vms, setVms] = useState<VmInfo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: vms = [], isLoading: loading } = useMyVms(true, 15_000);
+  const controlVm = useControlVm();
+  const deleteVm = useDeleteVm();
   const [actionLoading, setActionLoading] = useState<{
     key: string;
     action: "start" | "shutdown" | "reboot" | "delete";
@@ -49,41 +51,23 @@ export function InstancesTable() {
 
   const [expireAlerted, setExpireAlerted] = useState<Set<number>>(new Set());
 
-  const fetchVms = useCallback(async () => {
-    try {
-      const data = await getMyVms();
-      setVms(data);
-
-      for (const vm of data) {
-        if (vm.expires_at && !expireAlerted.has(vm.vmid)) {
-          const days = Math.ceil(
-            (new Date(vm.expires_at).getTime() - Date.now()) /
-              (1000 * 60 * 60 * 24),
+  useEffect(() => {
+    for (const vm of vms) {
+      if (vm.expires_at && !expireAlerted.has(vm.vmid)) {
+        const days = Math.ceil(
+          (new Date(vm.expires_at).getTime() - Date.now()) /
+            (1000 * 60 * 60 * 24),
+        );
+        if (days <= 15 && days > 0) {
+          addNotification(
+            "error",
+            `${vm.name}: 만료까지 ${days}일 남았습니다. 연장해주세요.`,
           );
-          if (days <= 15 && days > 0) {
-            addNotification(
-              "error",
-              `${vm.name}: 만료까지 ${days}일 남았습니다. 연장해주세요.`,
-            );
-            setExpireAlerted((prev) => new Set(prev).add(vm.vmid));
-          }
+          setExpireAlerted((prev) => new Set(prev).add(vm.vmid));
         }
       }
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
     }
-  }, [expireAlerted, addNotification]);
-
-  useEffect(() => {
-    const initial = setTimeout(fetchVms, 0);
-    const interval = setInterval(fetchVms, 15000);
-    return () => {
-      clearTimeout(initial);
-      clearInterval(interval);
-    };
-  }, [fetchVms]);
+  }, [vms, expireAlerted, addNotification]);
 
   const handleAction = async (
     vm: VmInfo,
@@ -92,13 +76,7 @@ export function InstancesTable() {
     const key = `${vm.node}-${vm.vmid}`;
     setActionLoading({ key, action });
     try {
-      await controlVm(vm.node, vm.vmid, action);
-      await fetchVms();
-      const delays =
-        action === "reboot"
-          ? [3000, 8000, 15000, 25000]
-          : [2000, 5000, 10000];
-      delays.forEach((ms) => setTimeout(fetchVms, ms));
+      await controlVm.mutateAsync({ node: vm.node, vmid: vm.vmid, action });
     } catch (e) {
       addNotification(
         "error",
@@ -114,8 +92,7 @@ export function InstancesTable() {
     const key = `${vm.node}-${vm.vmid}`;
     setActionLoading({ key, action: "delete" });
     try {
-      await deleteVm(vm.node, vm.vmid);
-      setVms((prev) => prev.filter((v) => v.vmid !== vm.vmid));
+      await deleteVm.mutateAsync({ node: vm.node, vmid: vm.vmid });
       addNotification("success", `VM ${vm.name}이(가) 삭제되었습니다.`);
     } catch {
       addNotification("error", `VM ${vm.name} 삭제에 실패했습니다.`);
