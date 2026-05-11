@@ -142,7 +142,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
           <Card
             elevation="medium"
             padding="none"
-            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto"
+            className="app-scrollbar absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto"
           >
             {filtered.length === 0 ? (
               <div className="px-4 py-6 text-center">
@@ -223,7 +223,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
                   </Paragraph>
                 </div>
               ) : (
-                <div className="max-h-96 overflow-y-auto">
+                <div className="app-scrollbar max-h-96 overflow-y-auto">
                   {notifications.map((n) => (
                     <div
                       key={n.id}

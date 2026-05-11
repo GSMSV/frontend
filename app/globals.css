@@ -59,6 +59,7 @@ body {
 * {
   scrollbar-color: #c9d1d9 transparent;
   scrollbar-width: thin;
+  scrollbar-gutter: stable;
 }
 
 *::-webkit-scrollbar {
@@ -85,8 +86,11 @@ body {
   background: transparent;
 }
 
+.app-scrollbar,
 [class*="overflow-y-auto"],
-[class*="overflow-auto"] {
+[class*="overflow-auto"],
+[class*="overflow-y-scroll"],
+[class*="overflow-scroll"] {
   scrollbar-gutter: stable;
 }
 
