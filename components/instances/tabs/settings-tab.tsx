@@ -5,7 +5,6 @@ import { useState } from "react";
 import {
   Button,
   Card,
-  Dialog,
   Heading,
   Paragraph,
   Slider,
@@ -15,6 +14,8 @@ import {
   TextField,
   ToggleSwitch,
 } from "@zaemoru/react";
+
+import { Dialog } from "@/components/ui/dialog";
 
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";

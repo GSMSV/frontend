@@ -7,12 +7,13 @@ import {
   BottomInfo,
   Button,
   Card,
-  Dialog,
   IconButton,
   Spinner,
   Text,
   TextArea,
 } from "@zaemoru/react";
+
+import { Dialog } from "@/components/ui/dialog";
 
 import type { FaqQuestionItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
