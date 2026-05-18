@@ -203,7 +203,7 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
           <TextField
             placeholder={instance.name}
             value={deleteConfirmName}
-            onChange={(value) => setDeleteConfirmName(value)}
+            onInput={(value) => setDeleteConfirmName(value)}
           />
         </div>
       </Dialog>

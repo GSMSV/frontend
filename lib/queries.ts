@@ -59,7 +59,7 @@ import {
   type VmInfo,
   type VmPort,
 } from "@/lib/api";
-import type { VmAction, VmStatusResponse } from "@/lib/types";
+import type { InstanceStatus, VmAction, VmStatusResponse } from "@/lib/types";
 
 export const queryKeys = {
   me: ["me"] as const,
@@ -261,6 +261,12 @@ function invalidateVm(qc: QueryClient, node: string, vmid: number) {
   qc.invalidateQueries({ queryKey: queryKeys.vmStatus(node, vmid) });
 }
 
+const actionToStatus: Record<VmAction, InstanceStatus> = {
+  start: "running",
+  shutdown: "stopped",
+  reboot: "running",
+};
+
 export function useControlVm() {
   const qc = useQueryClient();
   return useMutation({
@@ -273,7 +279,33 @@ export function useControlVm() {
       vmid: number;
       action: VmAction;
     }) => controlVm(node, vmid, action),
-    onSuccess: (_data, { node, vmid }) => invalidateVm(qc, node, vmid),
+    onMutate: async ({ node, vmid, action }) => {
+      await qc.cancelQueries({ queryKey: queryKeys.myVms });
+      await qc.cancelQueries({ queryKey: queryKeys.vmStatus(node, vmid) });
+      const prevMyVms = qc.getQueryData<VmInfo[]>(queryKeys.myVms);
+      const prevStatus = qc.getQueryData<VmStatusResponse>(
+        queryKeys.vmStatus(node, vmid),
+      );
+      const nextStatus = actionToStatus[action];
+      qc.setQueryData<VmInfo[]>(queryKeys.myVms, (old) =>
+        old
+          ? old.map((vm) =>
+              vm.vmid === vmid ? { ...vm, status: nextStatus } : vm,
+            )
+          : old,
+      );
+      qc.setQueryData<VmStatusResponse>(
+        queryKeys.vmStatus(node, vmid),
+        (old) => (old ? { ...old, status: nextStatus } : old),
+      );
+      return { prevMyVms, prevStatus };
+    },
+    onError: (_err, { node, vmid }, ctx) => {
+      if (ctx?.prevMyVms) qc.setQueryData(queryKeys.myVms, ctx.prevMyVms);
+      if (ctx?.prevStatus)
+        qc.setQueryData(queryKeys.vmStatus(node, vmid), ctx.prevStatus);
+    },
+    onSettled: (_data, _err, { node, vmid }) => invalidateVm(qc, node, vmid),
   });
 }
 

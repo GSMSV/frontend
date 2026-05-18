@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -133,6 +133,7 @@ export function DeployWizard() {
   const nodeResources: Record<string, NodeResources> =
     nodesResourcesQuery.data ?? {};
   const creating = createVm.isPending;
+  const submittingRef = useRef(false);
 
   const userRole = user?.role ?? "user";
   const availableNodes = nodeOptions.filter((n) => n.roles.includes(userRole));
@@ -187,6 +188,8 @@ export function DeployWizard() {
       : null;
 
   const handleCreate = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError("");
     try {
       const res = await createVm.mutateAsync({
@@ -217,6 +220,8 @@ export function DeployWizard() {
           : "인스턴스 생성 중 오류가 발생했습니다.";
       setError(msg);
       addNotification("error", `VM 생성 실패: ${msg}`);
+    } finally {
+      submittingRef.current = false;
     }
   };
 
