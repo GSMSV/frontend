@@ -240,7 +240,7 @@ export function InstancesTable() {
           <TextField
             placeholder={deleteTarget?.name}
             value={deleteConfirmName}
-            onChange={(value) => setDeleteConfirmName(value)}
+            onInput={(value) => setDeleteConfirmName(value)}
           />
         </div>
       </Dialog>
