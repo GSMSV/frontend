@@ -251,6 +251,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
             className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-[var(--zm-color-bg-subtle,#f3f4f6)]"
           >
             <Avatar
+              className="shrink-0"
               size="small"
               src={user?.avatar_url ?? undefined}
               fallback={initials}
@@ -268,6 +269,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
             >
               <div className="flex items-center gap-3 px-4 py-3">
                 <Avatar
+                  className="shrink-0"
                   size="medium"
                   src={user?.avatar_url ?? undefined}
                   fallback={initials}

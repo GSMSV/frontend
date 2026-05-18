@@ -144,6 +144,7 @@ export default function SettingsPage() {
 
         <div className="mt-4 flex items-center gap-4">
           <Avatar
+            className="shrink-0"
             size="large"
             src={user?.avatar_url ?? undefined}
             fallback={initials}
