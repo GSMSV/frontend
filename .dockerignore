@@ -1,6 +1,11 @@
-node_modules/
-.next/
-.env
-.env.*
-!.env.local.example
-*.log
+.git
+.github
+.next
+node_modules
+npm-debug.log*
+.env*.local
+.env.development
+README.md
+Dockerfile
+.dockerignore
+docker-compose*.yml

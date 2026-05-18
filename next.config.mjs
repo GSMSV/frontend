@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   reactStrictMode: true,
   experimental: {
     // RSC payload/client router cache TTL. Auth-sensitive data still comes from
