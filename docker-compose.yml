@@ -1,5 +1,6 @@
 services:
   frontend:
+    build: .
     image: gsmsv-frontend:latest
     container_name: gsmsv-frontend
     restart: unless-stopped
