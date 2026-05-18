@@ -1,0 +1,56 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy .env
+        run: cp "${{ secrets.DEPLOY_ENV_PATH }}" .env
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          NEXT_PUBLIC_API_URL=$(grep -E '^NEXT_PUBLIC_API_URL=' .env | cut -d= -f2-)
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL}" \
+            -t gsmsv-frontend:latest \
+            -t gsmsv-frontend:${{ github.sha }} \
+            .
+
+      - name: Deploy container
+        run: |
+          docker compose down --remove-orphans || true
+          docker compose up -d
+
+      - name: Verify frontend status
+        run: |
+          MAX=12
+          for i in $(seq 1 $MAX); do
+            echo "Waiting for frontend... ($i/$MAX)"
+            if docker compose ps frontend | grep -q "Up"; then
+              echo "frontend is Up."
+              docker compose ps frontend
+              exit 0
+            fi
+            if [ "$i" -eq "$MAX" ]; then
+              echo "Timeout: frontend did not become healthy within $((MAX * 5)) seconds."
+              docker compose logs frontend --tail=50
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Remove dangling images
+        run: docker image prune -f

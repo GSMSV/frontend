@@ -13,9 +13,13 @@ import {
   TextField,
 } from "@zaemoru/react";
 
-import { changePassword, deleteAvatar, uploadAvatar } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
+import {
+  useChangePassword,
+  useDeleteAvatar,
+  useUploadAvatar,
+} from "@/lib/queries";
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
@@ -24,13 +28,16 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const uploadAvatar = useUploadAvatar();
+  const deleteAvatar = useDeleteAvatar();
+  const changePassword = useChangePassword();
+  const avatarLoading = uploadAvatar.isPending || deleteAvatar.isPending;
+  const loading = changePassword.isPending;
 
   const handleAvatarUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -47,10 +54,9 @@ export default function SettingsPage() {
       return;
     }
 
-    setAvatarLoading(true);
     setAvatarError(null);
     try {
-      await uploadAvatar(file);
+      await uploadAvatar.mutateAsync(file);
       await refreshUser();
       addNotification("success", "프로필 사진이 변경되었습니다.");
     } catch (err) {
@@ -58,22 +64,18 @@ export default function SettingsPage() {
         err instanceof Error ? err.message : "업로드에 실패했습니다.",
       );
     } finally {
-      setAvatarLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   const handleAvatarDelete = async () => {
-    setAvatarLoading(true);
     setAvatarError(null);
     try {
-      await deleteAvatar();
+      await deleteAvatar.mutateAsync();
       await refreshUser();
       addNotification("info", "프로필 사진이 삭제되었습니다.");
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : "삭제에 실패했습니다.");
-    } finally {
-      setAvatarLoading(false);
     }
   };
 
@@ -99,9 +101,8 @@ export default function SettingsPage() {
       return;
     }
 
-    setLoading(true);
     try {
-      await changePassword(currentPassword, newPassword);
+      await changePassword.mutateAsync({ currentPassword, newPassword });
       setSuccess(true);
       setCurrentPassword("");
       setNewPassword("");
@@ -111,8 +112,6 @@ export default function SettingsPage() {
       setError(
         e instanceof Error ? e.message : "비밀번호 변경에 실패했습니다.",
       );
-    } finally {
-      setLoading(false);
     }
   };
 

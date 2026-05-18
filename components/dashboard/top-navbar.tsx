@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -13,16 +13,13 @@ import {
   Text,
 } from "@zaemoru/react";
 
-import {
-  type VmInfo,
-  getAllVms,
-  getMyVms,
-} from "@/lib/api";
+import type { VmInfo } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import {
   getNotificationColor,
   useNotifications,
 } from "@/lib/notification-context";
+import { useAllVms, useMyVms } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { BarsIcon, BellIcon } from "@/components/ui/icons";
 
@@ -55,9 +52,6 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const initials = user?.email?.charAt(0).toUpperCase() || "?";
 
   const [query, setQuery] = useState("");
-  const [allVms, setAllVms] = useState<(VmInfo & { owner_email?: string })[]>(
-    [],
-  );
   const [showResults, setShowResults] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -65,21 +59,18 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const notifRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  const loadVms = useCallback(async () => {
-    try {
-      if (isAdmin) {
-        const nodes = await getAllVms();
-        setAllVms(
-          nodes.flatMap((n) => n.vms.map((v) => ({ ...v, node: n.name }))),
-        );
-      } else {
-        const vms = await getMyVms();
-        setAllVms(vms);
-      }
-    } catch {
-      /* ignore */
+  const myVmsQuery = useMyVms(!!user && !isAdmin);
+  const allVmsQuery = useAllVms(!!user && isAdmin);
+  const allVms = useMemo<(VmInfo & { owner_email?: string })[]>(() => {
+    if (isAdmin) {
+      return (
+        allVmsQuery.data?.flatMap((n) =>
+          n.vms.map((v) => ({ ...v, node: n.name })),
+        ) ?? []
+      );
     }
-  }, [isAdmin]);
+    return myVmsQuery.data ?? [];
+  }, [isAdmin, allVmsQuery.data, myVmsQuery.data]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -131,10 +122,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
           value={query}
           onInput={(value) => {
             setQuery(value);
-            if (!showResults) {
-              loadVms();
-              setShowResults(true);
-            }
+            if (!showResults) setShowResults(true);
           }}
           onClear={() => setQuery("")}
         />
@@ -142,7 +130,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
           <Card
             elevation="medium"
             padding="none"
-            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto"
+            className="app-scrollbar absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto"
           >
             {filtered.length === 0 ? (
               <div className="px-4 py-6 text-center">
@@ -223,7 +211,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
                   </Paragraph>
                 </div>
               ) : (
-                <div className="max-h-96 overflow-y-auto">
+                <div className="app-scrollbar max-h-96 overflow-y-auto">
                   {notifications.map((n) => (
                     <div
                       key={n.id}

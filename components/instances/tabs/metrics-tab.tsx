@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -18,8 +18,8 @@ import {
   Text,
 } from "@zaemoru/react";
 
-import { type VmMetricPoint, getVmMetrics } from "@/lib/api";
 import { useNotifications } from "@/lib/notification-context";
+import { useVmMetrics } from "@/lib/queries";
 import type { Instance } from "@/lib/types";
 
 const POLL_INTERVAL = 10000;
@@ -119,64 +119,49 @@ function MetricChart({
 export function MetricsTab({ instance }: { instance: Instance }) {
   const isRunning = instance.status === "running";
   const [range, setRange] = useState("1h");
-  const [metrics, setMetrics] = useState<VmMetricPoint[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const { addNotification } = useNotifications();
-  const [alertSent, setAlertSent] = useState({ cpu: false, mem: false });
+  const alertSentRef = useRef({ cpu: false, mem: false });
+  const timeframe = TIMEFRAME_MAP[range] || "hour";
+  const metricsQuery = useVmMetrics(instance.node, instance.vmid, timeframe, {
+    enabled: isRunning,
+    refetchInterval: POLL_INTERVAL,
+  });
 
-  const fetchMetrics = useCallback(async () => {
-    if (!instance.node || !instance.vmid) return;
-    try {
-      const timeframe = TIMEFRAME_MAP[range] || "hour";
-      const res = await getVmMetrics(instance.node, instance.vmid, timeframe);
-      const now = Math.floor(Date.now() / 1000);
-      const cutoff = now - TIMERANGE_SECONDS[range];
-      const filtered = res.data.filter((p) => p.time >= cutoff);
-      setMetrics(filtered);
-      setError(null);
+  const metrics = useMemo(() => {
+    const source = metricsQuery.data?.data ?? [];
+    const latestTime = source.at(-1)?.time ?? 0;
+    const cutoff = latestTime - TIMERANGE_SECONDS[range];
+    return source.filter((p) => p.time >= cutoff);
+  }, [metricsQuery.data, range]);
 
-      const latest = filtered.at(-1);
-      if (latest) {
-        if (latest.cpu > 90 && !alertSent.cpu) {
-          addNotification(
-            "error",
-            `${instance.name}: CPU 사용량이 ${latest.cpu}%에 도달했습니다.`,
-          );
-          setAlertSent((prev) => ({ ...prev, cpu: true }));
-        } else if (latest.cpu <= 90) {
-          setAlertSent((prev) => ({ ...prev, cpu: false }));
-        }
-        if (latest.mem_percent > 90 && !alertSent.mem) {
-          addNotification(
-            "error",
-            `${instance.name}: 메모리 사용량이 ${latest.mem_percent}%에 도달했습니다.`,
-          );
-          setAlertSent((prev) => ({ ...prev, mem: true }));
-        } else if (latest.mem_percent <= 90) {
-          setAlertSent((prev) => ({ ...prev, mem: false }));
-        }
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "메트릭 조회 실패");
-    }
-  }, [
-    instance.node,
-    instance.vmid,
-    instance.name,
-    range,
-    alertSent,
-    addNotification,
-  ]);
+  const latest = metrics.at(-1);
+  const error = metricsQuery.error
+    ? metricsQuery.error.message || "메트릭 조회 실패"
+    : null;
 
   useEffect(() => {
-    if (!isRunning) return;
-    const initial = setTimeout(fetchMetrics, 0);
-    const interval = setInterval(fetchMetrics, POLL_INTERVAL);
-    return () => {
-      clearTimeout(initial);
-      clearInterval(interval);
-    };
-  }, [isRunning, fetchMetrics]);
+    if (!latest) return;
+    const alertSent = alertSentRef.current;
+    if (latest.cpu > 90 && !alertSent.cpu) {
+      addNotification(
+        "error",
+        `${instance.name}: CPU 사용량이 ${latest.cpu}%에 도달했습니다.`,
+      );
+      alertSent.cpu = true;
+    } else if (latest.cpu <= 90) {
+      alertSent.cpu = false;
+    }
+
+    if (latest.mem_percent > 90 && !alertSent.mem) {
+      addNotification(
+        "error",
+        `${instance.name}: 메모리 사용량이 ${latest.mem_percent}%에 도달했습니다.`,
+      );
+      alertSent.mem = true;
+    } else if (latest.mem_percent <= 90) {
+      alertSent.mem = false;
+    }
+  }, [latest, addNotification, instance.name]);
 
   if (!isRunning) {
     return (
@@ -204,8 +189,6 @@ export function MetricsTab({ instance }: { instance: Instance }) {
     label: formatTime(p.time, range),
     value: Math.round((p.diskread + p.diskwrite) * 10) / 10,
   }));
-
-  const latest = metrics.at(-1);
 
   return (
     <div className="flex flex-col gap-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   Button,
@@ -18,11 +18,13 @@ import {
 import {
   type PortInfo,
   type VmPort,
-  addCustomPort,
-  deleteCustomPort,
-  getCustomPorts,
-  restoreDefaultPorts,
 } from "@/lib/api";
+import {
+  useAddCustomPort,
+  useCustomPorts,
+  useDeleteCustomPort,
+  useRestoreDefaultPorts,
+} from "@/lib/queries";
 import type { Instance } from "@/lib/types";
 import {
   CopiedIcon,
@@ -38,34 +40,27 @@ export function FirewallTab({
   ports?: PortInfo[];
 }) {
   const [copiedId, setCopiedId] = useState<number | null>(null);
-  const [customPorts, setCustomPorts] = useState<VmPort[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [restoring, setRestoring] = useState(false);
 
   const [internalPort, setInternalPort] = useState("");
   const [protocol, setProtocol] = useState("tcp");
   const [source, setSource] = useState("");
   const [description, setDescription] = useState("");
 
-  const fetchPorts = useCallback(async () => {
-    try {
-      const data = await getCustomPorts(instance.node, instance.vmid);
-      setCustomPorts(data);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
-    }
-  }, [instance.node, instance.vmid]);
+  const customPortsQuery = useCustomPorts(instance.node, instance.vmid);
+  const addCustomPort = useAddCustomPort(instance.node, instance.vmid);
+  const deleteCustomPort = useDeleteCustomPort(instance.node, instance.vmid);
+  const restoreDefaultPorts = useRestoreDefaultPorts(
+    instance.node,
+    instance.vmid,
+  );
 
-  useEffect(() => {
-    const initial = setTimeout(fetchPorts, 0);
-    return () => clearTimeout(initial);
-  }, [fetchPorts]);
+  const customPorts: VmPort[] = customPortsQuery.data ?? [];
+  const loading = customPortsQuery.isLoading;
+  const submitting = addCustomPort.isPending;
+  const restoring = restoreDefaultPorts.isPending;
 
   const handleCopy = async (text: string, id: number) => {
     await navigator.clipboard.writeText(text);
@@ -76,10 +71,9 @@ export function FirewallTab({
   const handleAdd = async () => {
     const port = parseInt(internalPort);
     if (!port || port < 1 || port > 65535) return;
-    setSubmitting(true);
     setAddError(null);
     try {
-      await addCustomPort(instance.node, instance.vmid, {
+      await addCustomPort.mutateAsync({
         internal_port: port,
         protocol,
         source: source || undefined,
@@ -90,33 +84,25 @@ export function FirewallTab({
       setSource("");
       setDescription("");
       setDialogOpen(false);
-      await fetchPorts();
     } catch (e) {
       setAddError(
         e instanceof Error ? e.message : "포트 추가에 실패했습니다.",
       );
-    } finally {
-      setSubmitting(false);
     }
   };
 
   const handleRestoreDefaults = async () => {
-    setRestoring(true);
     try {
-      await restoreDefaultPorts(instance.node, instance.vmid);
-      await fetchPorts();
+      await restoreDefaultPorts.mutateAsync();
     } catch {
       /* ignore */
-    } finally {
-      setRestoring(false);
     }
   };
 
   const handleDelete = async (portId: number) => {
     setDeletingId(portId);
     try {
-      await deleteCustomPort(instance.node, instance.vmid, portId);
-      await fetchPorts();
+      await deleteCustomPort.mutateAsync(portId);
     } catch {
       /* ignore */
     } finally {

@@ -13,23 +13,21 @@ import {
   TextField,
 } from "@zaemoru/react";
 
-import { controlVm, deleteVm, extendVm } from "@/lib/api";
 import { useNotifications } from "@/lib/notification-context";
-import type { Instance } from "@/lib/types";
+import { useControlVm, useDeleteVm, useExtendVm } from "@/lib/queries";
+import type { Instance, VmAction } from "@/lib/types";
 import { ArrowLeftIcon } from "@/components/ui/icons";
 
 import { StatusBadge } from "./status-badge";
 
-export function InstanceHeader({
-  instance,
-  onRefresh,
-}: {
-  instance: Instance;
-  onRefresh?: () => void | Promise<void>;
-}) {
+type ActionKey = VmAction | "extend" | "delete";
+
+export function InstanceHeader({ instance }: { instance: Instance }) {
   const router = useRouter();
   const { addNotification } = useNotifications();
-  type ActionKey = "extend" | "start" | "shutdown" | "reboot" | "delete";
+  const controlVm = useControlVm();
+  const deleteVm = useDeleteVm();
+  const extendVm = useExtendVm();
   const [actionLoading, setActionLoading] = useState<ActionKey | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
@@ -44,22 +42,14 @@ export function InstanceHeader({
     : null;
   const canExtend = daysUntilExpiry !== null && daysUntilExpiry <= 15;
 
-  // 액션 직후 백엔드 상태가 반영되도록 즉시·짧은 간격 추적 폴링
-  const triggerFollowUpRefresh = (action: ActionKey) => {
-    if (!onRefresh) return;
-    const delays =
-      action === "reboot"
-        ? [500, 3000, 8000, 15000, 25000]
-        : [500, 2000, 5000, 10000];
-    delays.forEach((ms) => setTimeout(() => onRefresh(), ms));
-  };
-
   const handleExtend = async () => {
     setActionLoading("extend");
     try {
-      const res = await extendVm(instance.node, instance.vmid);
+      const res = await extendVm.mutateAsync({
+        node: instance.node,
+        vmid: instance.vmid,
+      });
       addNotification("success", res.message);
-      await onRefresh?.();
     } catch (e) {
       addNotification(
         "error",
@@ -70,13 +60,15 @@ export function InstanceHeader({
     }
   };
 
-  const handleAction = async (action: "start" | "shutdown" | "reboot") => {
+  const handleAction = async (action: VmAction) => {
     if (anyActionRunning) return;
     setActionLoading(action);
     try {
-      await controlVm(instance.node, instance.vmid, action);
-      await onRefresh?.();
-      triggerFollowUpRefresh(action);
+      await controlVm.mutateAsync({
+        node: instance.node,
+        vmid: instance.vmid,
+        action,
+      });
     } catch (e) {
       addNotification(
         "error",
@@ -92,7 +84,10 @@ export function InstanceHeader({
     setActionLoading("delete");
     setDeleteOpen(false);
     try {
-      await deleteVm(instance.node, instance.vmid);
+      await deleteVm.mutateAsync({
+        node: instance.node,
+        vmid: instance.vmid,
+      });
       router.push("/instances");
     } catch (e) {
       addNotification(

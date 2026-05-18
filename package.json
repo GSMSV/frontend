@@ -9,6 +9,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.100.9",
+    "@tanstack/react-query-devtools": "^5.100.9",
     "@zaemoru/elements": "^0.1.0",
     "@zaemoru/react": "^0.1.0",
     "@zaemoru/tokens": "^0.1.0",

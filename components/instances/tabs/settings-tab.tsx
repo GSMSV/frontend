@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   Button,
@@ -16,18 +16,17 @@ import {
   ToggleSwitch,
 } from "@zaemoru/react";
 
-import {
-  type SnapshotInfo,
-  createSnapshot,
-  deleteSnapshot,
-  getAutoSnapshot,
-  getSnapshots,
-  resizeVm,
-  rollbackSnapshot,
-  toggleAutoSnapshot,
-} from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
+import {
+  useAutoSnapshot,
+  useCreateSnapshot,
+  useDeleteSnapshot,
+  useResizeVm,
+  useRollbackSnapshot,
+  useSnapshots,
+  useToggleAutoSnapshot,
+} from "@/lib/queries";
 import type { Instance } from "@/lib/types";
 import { PlusIcon } from "@/components/ui/icons";
 
@@ -64,7 +63,6 @@ export function SettingsTab({ instance }: { instance: Instance }) {
   );
   const cores = corePresets[coreIdx];
   const memoryMb = memoryPresets[memIdx];
-  const [resizing, setResizing] = useState(false);
   const [applied, setApplied] = useState(false);
   const [resizeMessage, setResizeMessage] = useState<{
     type: "success" | "error";
@@ -72,15 +70,19 @@ export function SettingsTab({ instance }: { instance: Instance }) {
   } | null>(null);
   const hasChanges =
     !applied && (cores !== currentCores || memoryMb !== currentMemoryMb);
+  const resizeVm = useResizeVm();
 
   const handleResize = async () => {
-    setResizing(true);
     setResizeMessage(null);
     try {
       const params: { cores?: number; memory?: number } = {};
       if (cores !== currentCores) params.cores = cores;
       if (memoryMb !== currentMemoryMb) params.memory = memoryMb;
-      await resizeVm(instance.node, instance.vmid, params);
+      await resizeVm.mutateAsync({
+        node: instance.node,
+        vmid: instance.vmid,
+        params,
+      });
       setApplied(true);
       setResizeMessage({ type: "success", text: "사양이 변경되었습니다." });
     } catch (e) {
@@ -88,38 +90,29 @@ export function SettingsTab({ instance }: { instance: Instance }) {
         type: "error",
         text: e instanceof Error ? e.message : "사양 변경에 실패했습니다.",
       });
-    } finally {
-      setResizing(false);
     }
   };
 
   const memoryGb = (memoryMb / 1024).toFixed(1);
 
-  const [autoSnapEnabled, setAutoSnapEnabled] = useState(false);
-  const [autoSnapLoading, setAutoSnapLoading] = useState(false);
-
-  useEffect(() => {
-    getAutoSnapshot(instance.node, instance.vmid)
-      .then((res) => setAutoSnapEnabled(res.enabled))
-      .catch(() => {});
-  }, [instance.node, instance.vmid]);
+  const autoSnapshot = useAutoSnapshot(instance.node, instance.vmid);
+  const toggleAutoSnapshot = useToggleAutoSnapshot(
+    instance.node,
+    instance.vmid,
+  );
+  const autoSnapEnabled = autoSnapshot.data?.enabled ?? false;
+  const autoSnapLoading =
+    autoSnapshot.isLoading || toggleAutoSnapshot.isPending;
 
   const handleAutoSnapToggle = async () => {
-    setAutoSnapLoading(true);
     try {
-      const res = await toggleAutoSnapshot(instance.node, instance.vmid);
-      setAutoSnapEnabled(res.enabled);
+      await toggleAutoSnapshot.mutateAsync();
     } catch {
       /* ignore */
-    } finally {
-      setAutoSnapLoading(false);
     }
   };
 
   const { addNotification } = useNotifications();
-  const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([]);
-  const [snapLoading, setSnapLoading] = useState(true);
-  const [snapActionLoading, setSnapActionLoading] = useState(false);
   const [snapActionTarget, setSnapActionTarget] = useState<{
     name: string;
     type: "rollback" | "delete";
@@ -129,50 +122,40 @@ export function SettingsTab({ instance }: { instance: Instance }) {
   const [rollbackTarget, setRollbackTarget] = useState<string | null>(null);
   const [deleteSnapTarget, setDeleteSnapTarget] = useState<string | null>(null);
 
-  const fetchSnapshots = useCallback(async () => {
-    try {
-      const data = await getSnapshots(instance.node, instance.vmid);
-      setSnapshots(data);
-    } catch {
-      /* ignore */
-    } finally {
-      setSnapLoading(false);
-    }
-  }, [instance.node, instance.vmid]);
-
-  useEffect(() => {
-    const initial = setTimeout(fetchSnapshots, 0);
-    return () => clearTimeout(initial);
-  }, [fetchSnapshots]);
+  const snapshotsQuery = useSnapshots(instance.node, instance.vmid);
+  const createSnapshot = useCreateSnapshot(instance.node, instance.vmid);
+  const rollbackSnapshot = useRollbackSnapshot(instance.node, instance.vmid);
+  const deleteSnapshot = useDeleteSnapshot(instance.node, instance.vmid);
+  const snapshots = snapshotsQuery.data ?? [];
+  const snapLoading = snapshotsQuery.isLoading;
+  const snapActionLoading =
+    createSnapshot.isPending ||
+    rollbackSnapshot.isPending ||
+    deleteSnapshot.isPending;
 
   const handleCreateSnap = async () => {
     if (!newSnapName.trim()) return;
-    setSnapActionLoading(true);
     try {
-      await createSnapshot(instance.node, instance.vmid, newSnapName.trim());
+      await createSnapshot.mutateAsync({ name: newSnapName.trim() });
       addNotification(
         "success",
         `스냅샷 '${newSnapName.trim()}'이(가) 생성되었습니다.`,
       );
       setNewSnapName("");
       setShowCreateInput(false);
-      setTimeout(fetchSnapshots, 2000);
     } catch (e) {
       addNotification(
         "error",
         e instanceof Error ? e.message : "스냅샷 생성에 실패했습니다.",
       );
-    } finally {
-      setSnapActionLoading(false);
     }
   };
 
   const handleRollback = async (snapname: string) => {
     setRollbackTarget(null);
-    setSnapActionLoading(true);
     setSnapActionTarget({ name: snapname, type: "rollback" });
     try {
-      await rollbackSnapshot(instance.node, instance.vmid, snapname);
+      await rollbackSnapshot.mutateAsync(snapname);
       addNotification("success", `스냅샷 '${snapname}'으로 복원되었습니다.`);
     } catch (e) {
       addNotification(
@@ -180,29 +163,25 @@ export function SettingsTab({ instance }: { instance: Instance }) {
         e instanceof Error ? e.message : "복원에 실패했습니다.",
       );
     } finally {
-      setSnapActionLoading(false);
       setSnapActionTarget(null);
     }
   };
 
   const handleDeleteSnap = async (snapname: string) => {
     setDeleteSnapTarget(null);
-    setSnapActionLoading(true);
     setSnapActionTarget({ name: snapname, type: "delete" });
     try {
-      await deleteSnapshot(instance.node, instance.vmid, snapname);
+      await deleteSnapshot.mutateAsync(snapname);
       addNotification(
         "success",
         `스냅샷 '${snapname}'이(가) 삭제되었습니다.`,
       );
-      setTimeout(fetchSnapshots, 2000);
     } catch (e) {
       addNotification(
         "error",
         e instanceof Error ? e.message : "스냅샷 삭제에 실패했습니다.",
       );
     } finally {
-      setSnapActionLoading(false);
       setSnapActionTarget(null);
     }
   };
@@ -425,8 +404,8 @@ export function SettingsTab({ instance }: { instance: Instance }) {
             <div className="flex items-center gap-3">
               <Button
                 variant="primary"
-                disabled={!hasChanges || resizing}
-                loading={resizing}
+                disabled={!hasChanges || resizeVm.isPending}
+                loading={resizeVm.isPending}
                 onClick={handleResize}
               >
                 적용
