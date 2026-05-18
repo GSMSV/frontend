@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 
 import {
-  Avatar,
   BottomInfo,
   Button,
   Card,
@@ -12,6 +11,8 @@ import {
   Text,
   TextField,
 } from "@zaemoru/react";
+
+import { Avatar } from "@/components/ui/avatar";
 
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
@@ -144,7 +145,6 @@ export default function SettingsPage() {
 
         <div className="mt-4 flex items-center gap-4">
           <Avatar
-            className="shrink-0"
             size="large"
             src={user?.avatar_url ?? undefined}
             fallback={initials}
