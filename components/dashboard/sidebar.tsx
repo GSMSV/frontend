@@ -19,6 +19,7 @@ type NavItem = { title: string; href: string };
 const mainNavItems: NavItem[] = [
   { title: "인스턴스", href: "/instances" },
   { title: "VM 생성", href: "/deploy" },
+  { title: "서버리스", href: "/serverless" },
 ];
 
 const docCategories: { title: string; href: string; children?: NavItem[] }[] = [
