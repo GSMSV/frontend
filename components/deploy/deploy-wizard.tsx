@@ -47,13 +47,13 @@ const nodeOptions = [
     id: "gsmgpu1",
     name: "GSM GPU 1",
     desc: "일반 사용자용 서버",
-    roles: ["user", "admin"],
+    roles: ["user", "admin", "project_owner"],
   },
   {
     id: "gsmgpu2",
     name: "GSM GPU 2",
     desc: "일반 사용자용 서버",
-    roles: ["user", "admin"],
+    roles: ["user", "admin", "project_owner"],
   },
   {
     id: "gsmgpu3",
