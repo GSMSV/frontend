@@ -41,7 +41,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
     hasUnread,
     removeNotification,
     markAsRead,
-    deleteAll,
+    markAllAsRead,
   } = useNotifications();
 
   const isAdmin = user?.role === "admin";
@@ -197,7 +197,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
                 {notifications.length > 0 && (
                   <button
                     type="button"
-                    onClick={deleteAll}
+                    onClick={markAllAsRead}
                     className="text-xs text-[var(--zm-color-text-muted,#94a3b8)] hover:text-[var(--zm-color-text-primary,#0f172a)]"
                   >
                     모두 읽음
