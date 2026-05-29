@@ -96,7 +96,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 
   const markAsRead = useCallback(() => {
-    setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setLocalNotifications((prev) =>
+      prev.filter((n) => !n.read).map((n) => ({ ...n, read: true })),
+    );
     markAllRead.mutate();
   }, [markAllRead]);
 

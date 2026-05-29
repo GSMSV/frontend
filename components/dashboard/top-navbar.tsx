@@ -193,7 +193,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
                 <Text size="md" weight="semibold">
                   알림
                 </Text>
-                {notifications.length > 0 && (
+                {hasUnread && (
                   <button
                     type="button"
                     onClick={markAsRead}
