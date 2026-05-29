@@ -407,7 +407,7 @@ export function useMarkAllNotificationsRead() {
         queryKeys.notifications,
       );
       qc.setQueryData<NotificationItem[]>(queryKeys.notifications, (old) =>
-        old ? old.map((n) => ({ ...n, is_read: true })) : old,
+        old ? old.map((n) => (n.is_read ? n : { ...n, is_read: true })) : old,
       );
       return { previous };
     },

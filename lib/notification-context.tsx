@@ -38,7 +38,6 @@ interface NotificationContextType {
   addNotification: (type: NotificationType, message: string) => void;
   removeNotification: (id: number | string) => void;
   markAsRead: () => void;
-  deleteAll: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
@@ -97,14 +96,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 
   const markAsRead = useCallback(() => {
-    setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    if (remoteNotifications.some((n) => !n.read)) {
-      markAllRead.mutate();
-    }
-  }, [markAllRead, remoteNotifications]);
-
-  const deleteAll = useCallback(() => {
-    setLocalNotifications([]);
+    setLocalNotifications((prev) =>
+      prev.filter((n) => !n.read).map((n) => ({ ...n, read: true })),
+    );
     markAllRead.mutate();
   }, [markAllRead]);
 
@@ -118,7 +112,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         addNotification,
         removeNotification,
         markAsRead,
-        deleteAll,
       }}
     >
       {children}
