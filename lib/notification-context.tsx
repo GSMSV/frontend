@@ -97,10 +97,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const markAsRead = useCallback(() => {
     setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    if (remoteNotifications.some((n) => !n.read)) {
-      markAllRead.mutate();
-    }
-  }, [markAllRead, remoteNotifications]);
+    markAllRead.mutate();
+  }, [markAllRead]);
 
   const hasUnread = notifications.some((n) => !n.read);
 
