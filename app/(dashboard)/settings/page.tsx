@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 
 import {
-  Avatar,
   BottomInfo,
   Button,
   Card,
@@ -12,6 +11,8 @@ import {
   Text,
   TextField,
 } from "@zaemoru/react";
+
+import { Avatar } from "@/components/ui/avatar";
 
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";

@@ -7,11 +7,12 @@ import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
-  Dialog,
   Heading,
   Paragraph,
   TextField,
 } from "@zaemoru/react";
+
+import { Dialog } from "@/components/ui/dialog";
 
 import { useNotifications } from "@/lib/notification-context";
 import { useControlVm, useDeleteVm, useExtendVm } from "@/lib/queries";
@@ -203,7 +204,7 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
           <TextField
             placeholder={instance.name}
             value={deleteConfirmName}
-            onChange={(value) => setDeleteConfirmName(value)}
+            onInput={(value) => setDeleteConfirmName(value)}
           />
         </div>
       </Dialog>

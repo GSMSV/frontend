@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
-  Avatar,
   Badge,
   Card,
   IconButton,
@@ -12,6 +11,8 @@ import {
   SearchField,
   Text,
 } from "@zaemoru/react";
+
+import { Avatar } from "@/components/ui/avatar";
 
 import type { VmInfo } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";

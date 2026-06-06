@@ -398,25 +398,32 @@ export interface FirewallRule {
 }
 
 export async function getFirewallRules(
+  node: string,
   vmid: number,
 ): Promise<FirewallRule[]> {
   const res = await api<{
     vmid: number;
     node: string;
     rules: FirewallRule[];
-  }>(`/firewall/${vmid}/rules`);
+  }>(`/firewall/${encodeURIComponent(node)}/${vmid}/rules`);
   return res.rules ?? [];
 }
 
 export async function addFirewallRule(
+  node: string,
   vmid: number,
   rule: Omit<FirewallRule, "pos">,
 ) {
-  return api(`/firewall/${vmid}/rules`, { method: "POST", body: rule });
+  return api(`/firewall/${encodeURIComponent(node)}/${vmid}/rules`, {
+    method: "POST",
+    body: rule,
+  });
 }
 
-export async function deleteFirewallRule(vmid: number, pos: number) {
-  return api(`/firewall/${vmid}/rules/${pos}`, { method: "DELETE" });
+export async function deleteFirewallRule(node: string, vmid: number, pos: number) {
+  return api(`/firewall/${encodeURIComponent(node)}/${vmid}/rules/${pos}`, {
+    method: "DELETE",
+  });
 }
 
 export interface VmPort {
@@ -504,6 +511,7 @@ export interface SnapshotInfo {
   description?: string;
   snaptime?: number;
   parent?: string;
+  is_auto?: boolean;
 }
 
 export async function getSnapshots(

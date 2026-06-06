@@ -7,13 +7,14 @@ import {
   Badge,
   Button,
   Card,
-  Dialog,
   Empty,
   Heading,
   Paragraph,
   Text,
   TextField,
 } from "@zaemoru/react";
+
+import { Dialog } from "@/components/ui/dialog";
 
 import type { VmInfo } from "@/lib/api";
 import { useNotifications } from "@/lib/notification-context";
@@ -240,7 +241,7 @@ export function InstancesTable() {
           <TextField
             placeholder={deleteTarget?.name}
             value={deleteConfirmName}
-            onChange={(value) => setDeleteConfirmName(value)}
+            onInput={(value) => setDeleteConfirmName(value)}
           />
         </div>
       </Dialog>

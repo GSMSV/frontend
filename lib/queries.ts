@@ -59,7 +59,7 @@ import {
   type VmInfo,
   type VmPort,
 } from "@/lib/api";
-import type { VmAction, VmStatusResponse } from "@/lib/types";
+import type { InstanceStatus, VmAction, VmStatusResponse } from "@/lib/types";
 
 export const queryKeys = {
   me: ["me"] as const,
@@ -75,7 +75,8 @@ export const queryKeys = {
     ["vm", node, vmid, "metrics", timeframe] as const,
   customPorts: (node: string, vmid: number) =>
     ["firewall", node, vmid, "custom-ports"] as const,
-  firewallRules: (vmid: number) => ["firewall", vmid, "rules"] as const,
+  firewallRules: (node: string, vmid: number) =>
+    ["firewall", node, vmid, "rules"] as const,
   snapshots: (node: string, vmid: number) =>
     ["vm", node, vmid, "snapshots"] as const,
   autoSnapshot: (node: string, vmid: number) =>
@@ -210,11 +211,11 @@ export function useCustomPorts(node: string, vmid: number) {
   });
 }
 
-export function useFirewallRules(vmid: number) {
+export function useFirewallRules(node: string, vmid: number) {
   return useQuery<FirewallRule[]>({
-    queryKey: queryKeys.firewallRules(vmid),
-    queryFn: () => getFirewallRules(vmid),
-    enabled: !!vmid,
+    queryKey: queryKeys.firewallRules(node, vmid),
+    queryFn: () => getFirewallRules(node, vmid),
+    enabled: !!node && !!vmid,
     staleTime: 30_000,
   });
 }
@@ -261,6 +262,12 @@ function invalidateVm(qc: QueryClient, node: string, vmid: number) {
   qc.invalidateQueries({ queryKey: queryKeys.vmStatus(node, vmid) });
 }
 
+const actionToStatus: Record<VmAction, InstanceStatus> = {
+  start: "running",
+  shutdown: "stopped",
+  reboot: "running",
+};
+
 export function useControlVm() {
   const qc = useQueryClient();
   return useMutation({
@@ -273,7 +280,33 @@ export function useControlVm() {
       vmid: number;
       action: VmAction;
     }) => controlVm(node, vmid, action),
-    onSuccess: (_data, { node, vmid }) => invalidateVm(qc, node, vmid),
+    onMutate: async ({ node, vmid, action }) => {
+      await qc.cancelQueries({ queryKey: queryKeys.myVms });
+      await qc.cancelQueries({ queryKey: queryKeys.vmStatus(node, vmid) });
+      const prevMyVms = qc.getQueryData<VmInfo[]>(queryKeys.myVms);
+      const prevStatus = qc.getQueryData<VmStatusResponse>(
+        queryKeys.vmStatus(node, vmid),
+      );
+      const nextStatus = actionToStatus[action];
+      qc.setQueryData<VmInfo[]>(queryKeys.myVms, (old) =>
+        old
+          ? old.map((vm) =>
+              vm.vmid === vmid ? { ...vm, status: nextStatus } : vm,
+            )
+          : old,
+      );
+      qc.setQueryData<VmStatusResponse>(
+        queryKeys.vmStatus(node, vmid),
+        (old) => (old ? { ...old, status: nextStatus } : old),
+      );
+      return { prevMyVms, prevStatus };
+    },
+    onError: (_err, { node, vmid }, ctx) => {
+      if (ctx?.prevMyVms) qc.setQueryData(queryKeys.myVms, ctx.prevMyVms);
+      if (ctx?.prevStatus)
+        qc.setQueryData(queryKeys.vmStatus(node, vmid), ctx.prevStatus);
+    },
+    onSettled: (_data, _err, { node, vmid }) => invalidateVm(qc, node, vmid),
   });
 }
 
@@ -422,22 +455,22 @@ export function useRestoreDefaultPorts(node: string, vmid: number) {
   });
 }
 
-export function useAddFirewallRule(vmid: number) {
+export function useAddFirewallRule(node: string, vmid: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (rule: Omit<FirewallRule, "pos">) =>
-      addFirewallRule(vmid, rule),
+      addFirewallRule(node, vmid, rule),
     onSuccess: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.firewallRules(vmid) }),
+      qc.invalidateQueries({ queryKey: queryKeys.firewallRules(node, vmid) }),
   });
 }
 
-export function useDeleteFirewallRule(vmid: number) {
+export function useDeleteFirewallRule(node: string, vmid: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (pos: number) => deleteFirewallRule(vmid, pos),
+    mutationFn: (pos: number) => deleteFirewallRule(node, vmid, pos),
     onSuccess: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.firewallRules(vmid) }),
+      qc.invalidateQueries({ queryKey: queryKeys.firewallRules(node, vmid) }),
   });
 }
 

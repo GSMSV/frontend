@@ -5,7 +5,6 @@ import { useState } from "react";
 import {
   Button,
   Card,
-  Dialog,
   Heading,
   Paragraph,
   Slider,
@@ -15,6 +14,8 @@ import {
   TextField,
   ToggleSwitch,
 } from "@zaemoru/react";
+
+import { Dialog } from "@/components/ui/dialog";
 
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
@@ -186,9 +187,7 @@ export function SettingsTab({ instance }: { instance: Instance }) {
     }
   };
 
-  const manualSnaps = snapshots.filter(
-    (s) => !s.name.startsWith("auto-daily"),
-  );
+  const manualSnaps = snapshots.filter((s) => !s.is_auto);
 
   return (
     <div className="flex flex-col gap-4">
@@ -271,7 +270,7 @@ export function SettingsTab({ instance }: { instance: Instance }) {
             </Text>
           ) : (
             snapshots.map((snap) => {
-              const isAuto = snap.name.startsWith("auto-daily");
+              const isAuto = !!snap.is_auto;
               return (
                 <div
                   key={snap.name}

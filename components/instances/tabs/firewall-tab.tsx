@@ -7,13 +7,14 @@ import {
   Card,
   Heading,
   IconButton,
-  Modal,
   Paragraph,
   SegmentedControl,
   Spinner,
   Text,
   TextField,
 } from "@zaemoru/react";
+
+import { Modal } from "@/components/ui/dialog";
 
 import {
   type PortInfo,
