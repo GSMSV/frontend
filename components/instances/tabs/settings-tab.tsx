@@ -12,10 +12,10 @@ import {
   Tag,
   Text,
   TextField,
-  ToggleSwitch,
 } from "@zaemoru/react";
 
 import { Dialog } from "@/components/ui/dialog";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";

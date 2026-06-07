@@ -56,6 +56,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const [showResults, setShowResults] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -304,10 +305,19 @@ export function TopNavbar({ onMenuClick }: { onMenuClick?: () => void }) {
               <MenuDivider />
               <button
                 type="button"
-                onClick={() => logout()}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-[var(--zm-color-bg-subtle,#f3f4f6)]"
+                disabled={loggingOut}
+                onClick={async () => {
+                  if (loggingOut) return;
+                  setLoggingOut(true);
+                  try {
+                    await logout();
+                  } finally {
+                    setLoggingOut(false);
+                  }
+                }}
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-[var(--zm-color-bg-subtle,#f3f4f6)] disabled:opacity-60"
               >
-                로그아웃
+                {loggingOut ? "로그아웃 중..." : "로그아웃"}
               </button>
             </Card>
           )}

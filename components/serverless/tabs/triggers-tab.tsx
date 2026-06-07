@@ -13,6 +13,8 @@ import {
   TextField,
 } from "@zaemoru/react";
 
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
+
 import {
   createTrigger,
   deleteTrigger,
