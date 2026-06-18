@@ -15,6 +15,7 @@ const sideNav = [
   { title: "접속 방법", href: "/docs/access" },
   { title: "SSH Key 등록", href: "/docs/ssh-key" },
   { title: "Public IP / GPU 안내", href: "/docs/advanced-resources" },
+  { title: "Docker 사용시 주의사항", href: "/docs/docker" },
   { title: "프로젝트 오너", href: "/docs/project-owner" },
   { title: "FAQ", href: "/docs/faq" },
   { title: "질문 등록", href: "/docs/questions" },

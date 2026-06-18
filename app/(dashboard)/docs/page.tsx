@@ -32,6 +32,12 @@ const sections = [
     items: ["키 생성", "VM에 공개키 등록", "비밀번호 인증 비활성화"],
   },
   {
+    title: "Docker 사용시 주의사항",
+    href: "/docs/docker",
+    description: "GRE 터널 환경의 MTU 불일치 문제 및 해결 방법",
+    items: ["MTU 불일치 원인", "docker-compose 설정", "데몬 전역 설정"],
+  },
+  {
     title: "프로젝트 오너",
     href: "/docs/project-owner",
     description: "프로젝트 오너 권한, 가입 절차, 핫플러그",
