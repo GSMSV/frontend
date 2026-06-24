@@ -13,6 +13,7 @@ import {
 } from "@zaemoru/react";
 
 import { Avatar } from "@/components/ui/avatar";
+import { AvatarCropper } from "@/components/ui/avatar-cropper";
 
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
@@ -34,16 +35,16 @@ export default function SettingsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const uploadAvatar = useUploadAvatar();
   const deleteAvatar = useDeleteAvatar();
   const changePassword = useChangePassword();
   const avatarLoading = uploadAvatar.isPending || deleteAvatar.isPending;
   const loading = changePassword.isPending;
 
-  const handleAvatarUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = "";
     if (!file) return;
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
@@ -56,16 +57,20 @@ export default function SettingsPage() {
     }
 
     setAvatarError(null);
+    setCropFile(file);
+  };
+
+  const handleCropped = async (blob: Blob) => {
+    const cropped = new File([blob], "avatar.jpg", { type: "image/jpeg" });
     try {
-      await uploadAvatar.mutateAsync(file);
+      await uploadAvatar.mutateAsync(cropped);
       await refreshUser();
       addNotification("success", "프로필 사진이 변경되었습니다.");
+      setCropFile(null);
     } catch (err) {
       setAvatarError(
         err instanceof Error ? err.message : "업로드에 실패했습니다.",
       );
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -126,6 +131,14 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {cropFile && (
+        <AvatarCropper
+          file={cropFile}
+          busy={uploadAvatar.isPending}
+          onCancel={() => setCropFile(null)}
+          onCropped={handleCropped}
+        />
+      )}
       <div className="flex flex-col gap-1">
         <Heading level="1" size="xl">
           설정

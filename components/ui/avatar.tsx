@@ -37,7 +37,7 @@ export function Avatar({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full bg-[var(--zm-color-primary-subtle,#e0e7ff)] font-bold text-[var(--zm-color-primary,#4f46e5)]",
+        "relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full bg-[var(--zm-color-primary-subtle,#e0e7ff)] font-bold text-[var(--zm-color-primary,#4f46e5)]",
         sizeClasses[size],
         className,
       )}
@@ -46,7 +46,16 @@ export function Avatar({
         <img
           src={src}
           alt={alt}
-          className="h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "center",
+          }}
           onError={() => setFailed(true)}
         />
       ) : (
