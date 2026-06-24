@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 
 import { Card, Heading, Paragraph } from "@zaemoru/react";
 
+import { BrandLogo } from "@/components/ui/brand-logo";
+
 export function AuthShell({
   title,
   description,
@@ -18,7 +20,8 @@ export function AuthShell({
       <div className="w-full min-w-0 max-w-[440px]">
         <Card className="w-full max-w-full" elevation="low" padding="large">
           <div className="flex min-w-0 flex-col gap-6">
-            <div className="flex flex-col gap-2 text-center">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <BrandLogo size={48} className="mb-1" />
               <Heading level="1" size="xl">
                 {title}
               </Heading>
