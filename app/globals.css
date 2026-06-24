@@ -38,6 +38,10 @@ zm-badge[size="large"] {
   padding: 4px 10px;
 }
 
+zm-bottom-info {
+  --zm-spacing-3: 16px;
+}
+
 html,
 body {
   height: 100%;
