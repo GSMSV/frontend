@@ -11,14 +11,14 @@ import {
   SegmentedControl,
   Text,
   TextField,
-  ToggleSwitch,
 } from "@zaemoru/react";
+
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 
 import {
   createTrigger,
   deleteTrigger,
   getTriggers,
-  updateTrigger,
   type FunctionTrigger,
 } from "@/lib/serverless-api";
 import { ClockIcon, GlobeIcon, PlusIcon, TrashIcon } from "@/components/ui/icons";
@@ -56,13 +56,6 @@ export function TriggersTab({ funcId, ownerId, funcName }: TriggersTabProps) {
     } finally {
       setCreating(false);
     }
-  };
-
-  const handleToggle = async (trigger: FunctionTrigger) => {
-    const updated = await updateTrigger(funcId, trigger.id, {
-      enabled: !trigger.enabled,
-    });
-    setTriggers((prev) => prev.map((t) => (t.id === trigger.id ? updated : t)));
   };
 
   const handleDelete = async (id: string) => {
@@ -202,10 +195,6 @@ export function TriggersTab({ funcId, ownerId, funcName }: TriggersTabProps) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <ToggleSwitch
-                  checked={trigger.enabled}
-                  onChange={() => handleToggle(trigger)}
-                />
                 <IconButton
                   variant="ghost"
                   size="small"

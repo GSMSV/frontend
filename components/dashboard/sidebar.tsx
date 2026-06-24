@@ -9,6 +9,7 @@ import { Heading, Spinner, Text } from "@zaemoru/react";
 import { useAuth } from "@/lib/auth-context";
 import { useAllVms, useMyVms } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -129,7 +130,8 @@ export function Sidebar({
 
   const content = (
     <div className="flex h-full flex-col">
-      <div className="flex h-14 items-center px-4">
+      <div className="flex h-14 items-center gap-2 px-4">
+        <BrandLogo size={28} />
         <Heading level="2" size="lg">
           GSM SV
         </Heading>

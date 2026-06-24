@@ -45,6 +45,7 @@ export default function QuestionsPage() {
   const [deleteTarget, setDeleteTarget] = useState<FaqQuestionItem | null>(
     null,
   );
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const questionsQuery = useFaqQuestions();
   const submitFaqQuestion = useSubmitFaqQuestion();
@@ -81,11 +82,14 @@ export default function QuestionsPage() {
   };
 
   const handleDelete = async (item: FaqQuestionItem) => {
+    setDeletingId(item.id);
+    setDeleteTarget(null);
     try {
       await deleteFaqQuestion.mutateAsync(item.id);
-      setDeleteTarget(null);
     } catch {
       /* ignore */
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -179,9 +183,14 @@ export default function QuestionsPage() {
                     variant="ghost"
                     size="small"
                     ariaLabel="삭제"
+                    disabled={deletingId === q.id}
                     onClick={() => setDeleteTarget(q)}
                   >
-                    <TrashIcon />
+                    {deletingId === q.id ? (
+                      <Spinner size="small" />
+                    ) : (
+                      <TrashIcon />
+                    )}
                   </IconButton>
                 </div>
               </div>
