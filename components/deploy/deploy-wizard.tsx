@@ -551,7 +551,7 @@ export function DeployWizard() {
             variant="primary"
             size="large"
             loading={creating}
-            disabled={creating}
+            disabled={creating || !purpose.trim()}
             onClick={handleCreate}
           >
             인스턴스 생성

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Button,
@@ -191,6 +191,11 @@ export function SettingsTab({ instance }: { instance: Instance }) {
   const [purposeInput, setPurposeInput] = useState(instance.purpose ?? "");
   const updatePurpose = useUpdateVmPurpose();
   const purposeChanged = purposeInput.trim() !== (instance.purpose ?? "");
+
+  // 외부에서 purpose가 갱신되면(refetch 등) 입력창 동기화
+  useEffect(() => {
+    setPurposeInput(instance.purpose ?? "");
+  }, [instance.purpose]);
 
   const handleSavePurpose = async () => {
     if (!purposeInput.trim()) return;
