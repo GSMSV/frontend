@@ -16,6 +16,7 @@ export interface VmStatusResponse {
   public_ip?: string;
   created_at?: string;
   expires_at?: string;
+  purpose?: string;
   provisioning?: boolean;
 }
 
@@ -40,5 +41,6 @@ export interface Instance {
   maxdisk?: number;
   uptime_seconds?: number;
   expires_at?: string;
+  purpose?: string;
   provisioning?: boolean;
 }

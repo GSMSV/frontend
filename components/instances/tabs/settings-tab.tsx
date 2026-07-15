@@ -27,6 +27,7 @@ import {
   useRollbackSnapshot,
   useSnapshots,
   useToggleAutoSnapshot,
+  useUpdateVmPurpose,
 } from "@/lib/queries";
 import type { Instance } from "@/lib/types";
 import { PlusIcon } from "@/components/ui/icons";
@@ -36,10 +37,8 @@ export function SettingsTab({ instance }: { instance: Instance }) {
   const isPrivileged =
     user?.role === "admin" || user?.role === "project_owner";
 
-  const corePresets = [2, 4, 6, 8];
-  const memoryPresets = [
-    2048, 4096, 8192, 12288, 16384, 20480, 24576, 28672, 32768,
-  ];
+  const corePresets = [2, 4];
+  const memoryPresets = [4096, 8192, 12288, 16384];
 
   const currentCores =
     parseInt(instance.cpu?.split("코어")?.[0] || "") ||
@@ -189,8 +188,59 @@ export function SettingsTab({ instance }: { instance: Instance }) {
 
   const manualSnaps = snapshots.filter((s) => !s.is_auto);
 
+  const [purposeInput, setPurposeInput] = useState(instance.purpose ?? "");
+  const updatePurpose = useUpdateVmPurpose();
+  const purposeChanged = purposeInput.trim() !== (instance.purpose ?? "");
+
+  const handleSavePurpose = async () => {
+    if (!purposeInput.trim()) return;
+    try {
+      await updatePurpose.mutateAsync({
+        node: instance.node,
+        vmid: instance.vmid,
+        purpose: purposeInput.trim(),
+      });
+      addNotification("success", "사용 목적이 수정되었습니다.");
+    } catch (e) {
+      addNotification(
+        "error",
+        e instanceof Error ? e.message : "사용 목적 수정에 실패했습니다.",
+      );
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
+      <Card elevation="low" padding="medium">
+        <Heading level="3" size="md">
+          사용 목적
+        </Heading>
+        <Paragraph size="sm" tone="muted">
+          인스턴스의 사용 목적입니다. 관리자가 모니터링하며, 기준에 벗어나는
+          경우 삭제될 수 있습니다.
+        </Paragraph>
+        <div className="mt-3 flex items-center gap-2">
+          <div className="flex-1">
+            <TextField
+              value={purposeInput}
+              placeholder="예: 웹 서버 실습, 프로젝트 배포 등"
+              onInput={(value) => setPurposeInput(value.slice(0, 100))}
+            />
+          </div>
+          <Button
+            variant="primary"
+            size="small"
+            loading={updatePurpose.isPending}
+            disabled={
+              !purposeInput.trim() || !purposeChanged || updatePurpose.isPending
+            }
+            onClick={handleSavePurpose}
+          >
+            저장
+          </Button>
+        </div>
+      </Card>
+
       <Card elevation="low" padding="medium">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -393,7 +443,7 @@ export function SettingsTab({ instance }: { instance: Instance }) {
             <div className="flex justify-between text-xs text-[var(--zm-color-text-muted,#94a3b8)]">
               {memoryPresets.map((v) => {
                 const gb = v / 1024;
-                const showLabel = [2, 8, 16, 24, 32].includes(gb);
+                const showLabel = [4, 8, 16].includes(gb);
                 return showLabel ? <span key={v}>{gb}</span> : <span key={v}>·</span>;
               })}
             </div>

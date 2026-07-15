@@ -43,6 +43,7 @@ import {
   markAllNotificationsRead,
   rejectProjectOwner,
   resizeVm,
+  updateVmPurpose,
   restoreDefaultPorts,
   rollbackSnapshot,
   submitFaqQuestion,
@@ -345,6 +346,22 @@ export function useResizeVm() {
       vmid: number;
       params: { cores?: number; memory?: number };
     }) => resizeVm(node, vmid, params),
+    onSuccess: (_data, { node, vmid }) => invalidateVm(qc, node, vmid),
+  });
+}
+
+export function useUpdateVmPurpose() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      node,
+      vmid,
+      purpose,
+    }: {
+      node: string;
+      vmid: number;
+      purpose: string;
+    }) => updateVmPurpose(node, vmid, purpose),
     onSuccess: (_data, { node, vmid }) => invalidateVm(qc, node, vmid),
   });
 }
