@@ -85,7 +85,7 @@ const tiers = [
     name: "Custom",
     cpu: "최대 4 vCPU",
     memory: "최대 16 GB",
-    disk: "최대 50 GB",
+    disk: "최대 40 GB",
     roles: ["project_owner", "admin"],
   },
 ];
@@ -93,7 +93,7 @@ const tiers = [
 const CUSTOM_LIMITS = {
   cores: { min: 2, max: 4, step: 2 },
   memory: { min: 2, max: 16, step: 2 },
-  disk: { min: 30, max: 50, step: 5 },
+  disk: { min: 20, max: 40, step: 5 },
 };
 
 export function DeployWizard() {
@@ -109,7 +109,7 @@ export function DeployWizard() {
   const [purpose, setPurpose] = useState("");
   const [customCores, setCustomCores] = useState(2);
   const [customMemory, setCustomMemory] = useState(2);
-  const [customDisk, setCustomDisk] = useState(50);
+  const [customDisk, setCustomDisk] = useState(40);
   const [error, setError] = useState("");
   const [result, setResult] = useState<VmCreateResponse | null>(null);
 
