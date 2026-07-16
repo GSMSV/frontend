@@ -499,7 +499,7 @@ export function DeployWizard() {
               <div className="flex items-center gap-2 rounded-xl border border-[var(--zm-color-border-subtle,#e5e7eb)] bg-[var(--zm-color-bg-subtle,#f9fafb)] p-4">
                 <Spinner size="small" />
                 <Text size="sm" tone="muted">
-                  인스턴스를 생성하고 있습니다. 완료까지 몇 분 정도 걸릴 수
+                  인스턴스를 생성하고 있습니다. 완료까지 1~2분정도 소요될 수
                   있어요.
                 </Text>
               </div>
