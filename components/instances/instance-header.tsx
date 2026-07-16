@@ -9,6 +9,7 @@ import {
   Button,
   Heading,
   Paragraph,
+  Text,
   TextField,
 } from "@zaemoru/react";
 
@@ -41,7 +42,12 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
   const daysUntilExpiry = expiresAt
     ? Math.ceil((expiresAt.getTime() - now) / (1000 * 60 * 60 * 24))
     : null;
-  const canExtend = daysUntilExpiry !== null && daysUntilExpiry <= 15;
+  const canExtend = daysUntilExpiry !== null && daysUntilExpiry <= 7;
+  // 만료 후 3일 유예(강제 정지) 뒤 완전 삭제 — 유예 중이면 남은 일수 표시
+  const isGracePeriod = daysUntilExpiry !== null && daysUntilExpiry <= 0;
+  const daysUntilPurge = isGracePeriod
+    ? Math.max(0, 3 + (daysUntilExpiry as number))
+    : null;
 
   const handleExtend = async () => {
     setActionLoading("extend");
@@ -122,10 +128,20 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
                   설정 중
                 </Badge>
               )}
+              {isGracePeriod && (
+                <Badge variant="weak" color="red" size="small">
+                  삭제 대기 · {daysUntilPurge}일 후 완전 삭제
+                </Badge>
+              )}
             </div>
             <Paragraph size="sm" tone="muted">
               VMID: {instance.vmid} · {instance.node} · {instance.os}
             </Paragraph>
+            {isGracePeriod && (
+              <Text size="sm" tone="danger">
+                만료되어 정지되었습니다. 연장하면 삭제가 취소됩니다.
+              </Text>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

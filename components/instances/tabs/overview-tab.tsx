@@ -172,7 +172,11 @@ export function OverviewTab({
           {expiresDate && (
             <Row
               label="만료일"
-              value={`${expiresDate} (${daysUntilExpiry}일 남음)`}
+              value={
+                daysUntilExpiry !== null && daysUntilExpiry <= 0
+                  ? `${expiresDate} (만료됨 · ${Math.max(0, 3 + daysUntilExpiry)}일 후 완전 삭제)`
+                  : `${expiresDate} (${daysUntilExpiry}일 남음)`
+              }
             />
           )}
         </div>

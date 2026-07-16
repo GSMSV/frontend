@@ -46,7 +46,13 @@ export function InstancesTable() {
           (new Date(vm.expires_at).getTime() - Date.now()) /
             (1000 * 60 * 60 * 24),
         );
-        if (days <= 15 && days > 0) {
+        if (days <= 0) {
+          addNotification(
+            "error",
+            `${vm.name}: 만료되어 정지되었습니다. ${Math.max(0, 3 + days)}일 후 완전 삭제됩니다. 연장하면 삭제가 취소됩니다.`,
+          );
+          expireAlerted.current.add(vm.vmid);
+        } else if (days <= 7) {
           addNotification(
             "error",
             `${vm.name}: 만료까지 ${days}일 남았습니다. 연장해주세요.`,
@@ -108,6 +114,14 @@ export function InstancesTable() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
         {vms.map((vm) => {
           const status = (vm.status || "stopped") as InstanceStatus;
+          const daysUntilExpiry = vm.expires_at
+            ? Math.ceil(
+                (new Date(vm.expires_at).getTime() - Date.now()) /
+                  (1000 * 60 * 60 * 24),
+              )
+            : null;
+          const isGracePeriod =
+            daysUntilExpiry !== null && daysUntilExpiry <= 0;
           const key = `${vm.node}-${vm.vmid}`;
           const isActioning = actionLoading?.key === key;
           const activeAction =
@@ -132,6 +146,12 @@ export function InstancesTable() {
                   {vm.provisioning && (
                     <Badge variant="weak" color="yellow" size="small">
                       설정 중
+                    </Badge>
+                  )}
+                  {isGracePeriod && (
+                    <Badge variant="weak" color="red" size="small">
+                      삭제 대기 ·{" "}
+                      {Math.max(0, 3 + (daysUntilExpiry as number))}일 후 삭제
                     </Badge>
                   )}
                 </div>
