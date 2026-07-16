@@ -14,6 +14,7 @@ import {
   ProgressStepper,
   Result,
   Slider,
+  Spinner,
   Text,
   TextField,
 } from "@zaemoru/react";
@@ -477,6 +478,7 @@ export function DeployWizard() {
               value={hostname}
               placeholder="미입력 시 자동 생성"
               helperText="영어, 숫자, 하이픈(-)만 사용 가능합니다."
+              disabled={creating}
               onInput={(value) =>
                 setHostname(
                   value.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, ""),
@@ -489,8 +491,19 @@ export function DeployWizard() {
               value={purpose}
               placeholder="예: 웹 서버 실습, 프로젝트 배포 등"
               helperText="사용 목적은 관리자가 모니터링하며, 기준에 벗어나는 경우 삭제될 수 있습니다. (100자 이내)"
+              disabled={creating}
               onInput={(value) => setPurpose(value.slice(0, 100))}
             />
+
+            {creating && (
+              <div className="flex items-center gap-2 rounded-xl border border-[var(--zm-color-border-subtle,#e5e7eb)] bg-[var(--zm-color-bg-subtle,#f9fafb)] p-4">
+                <Spinner size="small" />
+                <Text size="sm" tone="muted">
+                  인스턴스를 생성하고 있습니다. 완료까지 몇 분 정도 걸릴 수
+                  있어요.
+                </Text>
+              </div>
+            )}
 
             <div className="rounded-xl border border-[var(--zm-color-border-subtle,#e5e7eb)] bg-[var(--zm-color-bg-subtle,#f9fafb)] p-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -554,7 +567,7 @@ export function DeployWizard() {
             disabled={creating || !purpose.trim()}
             onClick={handleCreate}
           >
-            인스턴스 생성
+            {creating ? "생성 중..." : "인스턴스 생성"}
           </Button>
         )}
       </div>
