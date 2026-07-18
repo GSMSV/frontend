@@ -57,6 +57,7 @@ function InstanceDetailContent({ id }: { id: string }) {
       maxdisk: status.maxdisk,
       uptime_seconds: status.uptime,
       expires_at: status.expires_at,
+      purpose: status.purpose,
       provisioning: status.provisioning,
     };
   }, [status, node, vmid]);

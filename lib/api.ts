@@ -294,14 +294,16 @@ export interface VmInfo {
   internal_ip?: string;
   vm_password?: string;
   expires_at?: string;
+  purpose?: string;
   provisioning?: boolean;
 }
 
 export interface VmCreateRequest {
-  tier: "micro" | "small" | "medium" | "large" | "project_custom";
+  tier: "basic" | "standard" | "project_custom";
   os: "ubuntu2204";
   node_name?: string;
   name?: string;
+  purpose: string;
   custom_cores?: number;
   custom_memory?: number;
   custom_disk?: number;
@@ -360,6 +362,17 @@ export async function createVm(
 
 export async function deleteVm(node: string, vmid: number) {
   return api(`/vm/${node}/vms/${vmid}`, { method: "DELETE" });
+}
+
+export async function updateVmPurpose(
+  node: string,
+  vmid: number,
+  purpose: string,
+) {
+  return api<{ success: boolean; purpose: string }>(
+    `/vm/${node}/vms/${vmid}/purpose`,
+    { method: "PATCH", body: { purpose } },
+  );
 }
 
 export interface PortInfo {

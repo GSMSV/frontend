@@ -14,6 +14,7 @@ import {
   ProgressStepper,
   Result,
   Slider,
+  Spinner,
   Text,
   TextField,
 } from "@zaemoru/react";
@@ -65,51 +66,35 @@ const nodeOptions = [
 
 const tiers = [
   {
-    id: "micro",
-    name: "Micro",
+    id: "basic",
+    name: "Basic",
     cpu: "1 vCPU",
     memory: "2 GB",
-    disk: "30 GB",
+    disk: "20 GB",
     roles: ["user", "admin", "project_owner"],
   },
   {
-    id: "small",
-    name: "Small",
+    id: "standard",
+    name: "Standard",
     cpu: "2 vCPU",
     memory: "4 GB",
-    disk: "40 GB",
-    roles: ["user", "admin", "project_owner"],
-  },
-  {
-    id: "medium",
-    name: "Medium",
-    cpu: "2 vCPU",
-    memory: "6 GB",
-    disk: "50 GB",
-    roles: ["user", "admin", "project_owner"],
-  },
-  {
-    id: "large",
-    name: "Large",
-    cpu: "4 vCPU",
-    memory: "8 GB",
-    disk: "50 GB",
+    disk: "20 GB",
     roles: ["user", "admin", "project_owner"],
   },
   {
     id: "project_custom",
     name: "Custom",
-    cpu: "최대 8 vCPU",
-    memory: "최대 32 GB",
-    disk: "최대 70 GB",
+    cpu: "최대 4 vCPU",
+    memory: "최대 16 GB",
+    disk: "최대 40 GB",
     roles: ["project_owner", "admin"],
   },
 ];
 
 const CUSTOM_LIMITS = {
-  cores: { min: 2, max: 8, step: 2 },
-  memory: { min: 2, max: 32, step: 2 },
-  disk: { min: 30, max: 70, step: 5 },
+  cores: { min: 2, max: 4, step: 2 },
+  memory: { min: 2, max: 16, step: 2 },
+  disk: { min: 20, max: 40, step: 5 },
 };
 
 export function DeployWizard() {
@@ -122,9 +107,10 @@ export function DeployWizard() {
   const [selectedNode, setSelectedNode] = useState("");
   const [selectedTier, setSelectedTier] = useState("");
   const [hostname, setHostname] = useState("");
+  const [purpose, setPurpose] = useState("");
   const [customCores, setCustomCores] = useState(2);
   const [customMemory, setCustomMemory] = useState(2);
-  const [customDisk, setCustomDisk] = useState(50);
+  const [customDisk, setCustomDisk] = useState(40);
   const [error, setError] = useState("");
   const [result, setResult] = useState<VmCreateResponse | null>(null);
 
@@ -164,7 +150,7 @@ export function DeployWizard() {
       case 3:
         return !!selectedTier;
       case 4:
-        return true;
+        return !!purpose.trim();
       default:
         return false;
     }
@@ -193,15 +179,11 @@ export function DeployWizard() {
     setError("");
     try {
       const res = await createVm.mutateAsync({
-        tier: selectedTier as
-          | "micro"
-          | "small"
-          | "medium"
-          | "large"
-          | "project_custom",
+        tier: selectedTier as "basic" | "standard" | "project_custom",
         os: selectedOs as "ubuntu2204",
         node_name: selectedNode,
         name: hostname || undefined,
+        purpose: purpose.trim(),
         ...(isCustomTier && {
           custom_cores: customCores,
           custom_memory: customMemory * 1024,
@@ -496,12 +478,32 @@ export function DeployWizard() {
               value={hostname}
               placeholder="미입력 시 자동 생성"
               helperText="영어, 숫자, 하이픈(-)만 사용 가능합니다."
+              disabled={creating}
               onInput={(value) =>
                 setHostname(
                   value.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, ""),
                 )
               }
             />
+
+            <TextField
+              label="사용 목적 (필수)"
+              value={purpose}
+              placeholder="예: 웹 서버 실습, 프로젝트 배포 등"
+              helperText="사용 목적은 관리자가 모니터링하며, 기준에 벗어나는 경우 삭제될 수 있습니다. (100자 이내)"
+              disabled={creating}
+              onInput={(value) => setPurpose(value.slice(0, 100))}
+            />
+
+            {creating && (
+              <div className="flex items-center gap-2 rounded-xl border border-[var(--zm-color-border-subtle,#e5e7eb)] bg-[var(--zm-color-bg-subtle,#f9fafb)] p-4">
+                <Spinner size="small" />
+                <Text size="sm" tone="muted">
+                  인스턴스를 생성하고 있습니다. 완료까지 1~2분정도 소요될 수
+                  있어요.
+                </Text>
+              </div>
+            )}
 
             <div className="rounded-xl border border-[var(--zm-color-border-subtle,#e5e7eb)] bg-[var(--zm-color-bg-subtle,#f9fafb)] p-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -562,10 +564,10 @@ export function DeployWizard() {
             variant="primary"
             size="large"
             loading={creating}
-            disabled={creating}
+            disabled={creating || !purpose.trim()}
             onClick={handleCreate}
           >
-            인스턴스 생성
+            {creating ? "생성 중..." : "인스턴스 생성"}
           </Button>
         )}
       </div>
