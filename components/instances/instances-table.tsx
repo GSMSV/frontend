@@ -124,6 +124,7 @@ export function InstancesTable() {
             daysUntilExpiry !== null && daysUntilExpiry <= 0;
           const key = `${vm.node}-${vm.vmid}`;
           const isActioning = actionLoading?.key === key;
+          const notReady = vm.ready === false;
           const activeAction =
             actionLoading?.key === key ? actionLoading.action : null;
 
@@ -183,7 +184,7 @@ export function InstancesTable() {
                   <Button
                     variant="secondary"
                     size="small"
-                    disabled={isActioning}
+                    disabled={isActioning || notReady}
                     loading={activeAction === "start"}
                     onClick={() => handleAction(vm, "start")}
                   >
@@ -193,7 +194,7 @@ export function InstancesTable() {
                   <Button
                     variant="secondary"
                     size="small"
-                    disabled={isActioning}
+                    disabled={isActioning || notReady}
                     loading={activeAction === "shutdown"}
                     onClick={() => handleAction(vm, "shutdown")}
                   >
@@ -203,7 +204,7 @@ export function InstancesTable() {
                 <Button
                   variant="secondary"
                   size="small"
-                  disabled={isActioning}
+                  disabled={isActioning || notReady}
                   loading={activeAction === "reboot"}
                   onClick={() => handleAction(vm, "reboot")}
                 >
