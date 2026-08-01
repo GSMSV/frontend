@@ -58,6 +58,7 @@ function InstanceDetailContent({ id }: { id: string }) {
       uptime_seconds: status.uptime,
       expires_at: status.expires_at,
       purpose: status.purpose,
+      ready: status.ready,
       provisioning: status.provisioning,
     };
   }, [status, node, vmid]);

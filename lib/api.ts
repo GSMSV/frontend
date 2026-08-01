@@ -295,6 +295,7 @@ export interface VmInfo {
   vm_password?: string;
   expires_at?: string;
   purpose?: string;
+  ready?: boolean;
   provisioning?: boolean;
 }
 

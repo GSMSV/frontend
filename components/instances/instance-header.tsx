@@ -35,7 +35,7 @@ export function InstanceHeader({ instance }: { instance: Instance }) {
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [now] = useState(() => Date.now());
 
-  const isProvisioning = !!instance.provisioning;
+  const isProvisioning = !!instance.provisioning || instance.ready === false;
   const anyActionRunning = actionLoading !== null;
 
   const expiresAt = instance.expires_at ? new Date(instance.expires_at) : null;

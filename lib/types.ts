@@ -17,6 +17,7 @@ export interface VmStatusResponse {
   created_at?: string;
   expires_at?: string;
   purpose?: string;
+  ready?: boolean;
   provisioning?: boolean;
 }
 
@@ -42,5 +43,6 @@ export interface Instance {
   uptime_seconds?: number;
   expires_at?: string;
   purpose?: string;
+  ready?: boolean;
   provisioning?: boolean;
 }
