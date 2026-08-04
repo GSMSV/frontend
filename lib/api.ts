@@ -497,6 +497,47 @@ export async function restoreDefaultPorts(
   );
 }
 
+export interface HttpsRoute {
+  id: number;
+  subdomain: string;
+  full_domain: string;
+  internal_port: number;
+  caddy_synced: boolean;
+  created_at: string;
+}
+
+export async function getHttpsRoutes(
+  node: string,
+  vmid: number,
+): Promise<HttpsRoute[]> {
+  const res = await api<{ vmid: number; routes: HttpsRoute[] }>(
+    `/https-gateway/${encodeURIComponent(node)}/${vmid}/routes`,
+  );
+  return res.routes ?? [];
+}
+
+export async function addHttpsRoute(
+  node: string,
+  vmid: number,
+  body: { subdomain: string; internal_port: number },
+): Promise<HttpsRoute> {
+  return api<HttpsRoute>(
+    `/https-gateway/${encodeURIComponent(node)}/${vmid}/routes`,
+    { method: "POST", body },
+  );
+}
+
+export async function deleteHttpsRoute(
+  node: string,
+  vmid: number,
+  routeId: number,
+) {
+  return api(
+    `/https-gateway/${encodeURIComponent(node)}/${vmid}/routes/${routeId}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function extendVm(node: string, vmid: number) {
   return api<{ success: boolean; message: string; expires_at: string }>(
     `/vm/${node}/vms/${vmid}/extend`,
