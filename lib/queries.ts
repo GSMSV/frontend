@@ -12,6 +12,7 @@ import {
 import {
   addCustomPort,
   addFirewallRule,
+  addHttpsRoute,
   answerFaqQuestion,
   approveProjectOwner,
   changePassword,
@@ -22,6 +23,7 @@ import {
   deleteCustomPort,
   deleteFaqQuestion,
   deleteFirewallRule,
+  deleteHttpsRoute,
   deleteNotification,
   deleteSnapshot,
   deleteVm,
@@ -31,6 +33,7 @@ import {
   getCustomPorts,
   getFaqQuestions,
   getFirewallRules,
+  getHttpsRoutes,
   getMe,
   getMyVms,
   getNodesResources,
@@ -52,6 +55,7 @@ import {
   type AdminNodeVms,
   type FaqQuestionItem,
   type FirewallRule,
+  type HttpsRoute,
   type NotificationItem,
   type PendingApproval,
   type PortInfo,
@@ -76,6 +80,8 @@ export const queryKeys = {
     ["vm", node, vmid, "metrics", timeframe] as const,
   customPorts: (node: string, vmid: number) =>
     ["firewall", node, vmid, "custom-ports"] as const,
+  httpsRoutes: (node: string, vmid: number) =>
+    ["https-gateway", node, vmid, "routes"] as const,
   firewallRules: (node: string, vmid: number) =>
     ["firewall", node, vmid, "rules"] as const,
   snapshots: (node: string, vmid: number) =>
@@ -469,6 +475,37 @@ export function useRestoreDefaultPorts(node: string, vmid: number) {
     mutationFn: () => restoreDefaultPorts(node, vmid),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: queryKeys.customPorts(node, vmid) }),
+  });
+}
+
+export function useHttpsRoutes(node: string, vmid: number) {
+  return useQuery<HttpsRoute[]>({
+    queryKey: queryKeys.httpsRoutes(node, vmid),
+    queryFn: () => getHttpsRoutes(node, vmid),
+    enabled: !!node && !!vmid,
+    staleTime: 30_000,
+  });
+}
+
+export function useAddHttpsRoute(node: string, vmid: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { subdomain: string; internal_port: number }) =>
+      addHttpsRoute(node, vmid, body),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.httpsRoutes(node, vmid) }),
+  });
+}
+
+export function useDeleteHttpsRoute(node: string, vmid: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (routeId: number) => deleteHttpsRoute(node, vmid, routeId),
+    ...optimisticRemove<HttpsRoute, number>(
+      qc,
+      queryKeys.httpsRoutes(node, vmid),
+      (r, routeId) => r.id === routeId,
+    ),
   });
 }
 
