@@ -82,7 +82,14 @@ export async function api<T = unknown>(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: "서버 오류" }));
-    throw new ApiError(res.status, error.detail || `HTTP ${res.status}`);
+    const rawDetail = error.detail;
+    const detail = Array.isArray(rawDetail)
+      ? rawDetail
+          .map((d: { msg?: string }) => d?.msg)
+          .filter(Boolean)
+          .join(", ")
+      : rawDetail;
+    throw new ApiError(res.status, detail || `HTTP ${res.status}`);
   }
 
   return res.json() as Promise<T>;
