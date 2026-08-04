@@ -149,9 +149,12 @@ export function HttpsTab({ instance }: { instance: Instance }) {
             label="서브도메인"
             value={subdomain}
             placeholder="예: myapp"
-            helperText="영문 소문자·숫자·하이픈, .https.gsmsv.site로 연결됩니다"
+            helperText="입력한 값은 .https.gsmsv.site의 하위 도메인으로 연결돼요."
             onChange={(value) => setSubdomain(value.toLowerCase())}
           />
+          <Text size="xs" tone="muted">
+            영문 소문자, 숫자, 하이픈만 사용할 수 있어요.
+          </Text>
           <TextField
             label="내부 포트"
             type="number"
