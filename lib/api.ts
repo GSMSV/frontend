@@ -82,7 +82,14 @@ export async function api<T = unknown>(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: "서버 오류" }));
-    throw new ApiError(res.status, error.detail || `HTTP ${res.status}`);
+    const rawDetail = error.detail;
+    const detail = Array.isArray(rawDetail)
+      ? rawDetail
+          .map((d: { msg?: string }) => d?.msg)
+          .filter(Boolean)
+          .join(", ")
+      : rawDetail;
+    throw new ApiError(res.status, detail || `HTTP ${res.status}`);
   }
 
   return res.json() as Promise<T>;
@@ -494,6 +501,47 @@ export async function restoreDefaultPorts(
   return api<{ restored: number }>(
     `/firewall/${encodeURIComponent(node)}/${vmid}/ports/defaults/restore`,
     { method: "POST" },
+  );
+}
+
+export interface HttpsRoute {
+  id: number;
+  subdomain: string;
+  full_domain: string;
+  internal_port: number;
+  caddy_synced: boolean;
+  created_at: string;
+}
+
+export async function getHttpsRoutes(
+  node: string,
+  vmid: number,
+): Promise<HttpsRoute[]> {
+  const res = await api<{ vmid: number; routes: HttpsRoute[] }>(
+    `/https-gateway/${encodeURIComponent(node)}/${vmid}/routes`,
+  );
+  return res.routes ?? [];
+}
+
+export async function addHttpsRoute(
+  node: string,
+  vmid: number,
+  body: { subdomain: string; internal_port: number },
+): Promise<HttpsRoute> {
+  return api<HttpsRoute>(
+    `/https-gateway/${encodeURIComponent(node)}/${vmid}/routes`,
+    { method: "POST", body },
+  );
+}
+
+export async function deleteHttpsRoute(
+  node: string,
+  vmid: number,
+  routeId: number,
+) {
+  return api(
+    `/https-gateway/${encodeURIComponent(node)}/${vmid}/routes/${routeId}`,
+    { method: "DELETE" },
   );
 }
 
