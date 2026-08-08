@@ -124,7 +124,8 @@ export function InstancesTable() {
             daysUntilExpiry !== null && daysUntilExpiry <= 0;
           const key = `${vm.node}-${vm.vmid}`;
           const isActioning = actionLoading?.key === key;
-          const notReady = vm.ready === false;
+          // ready=false: 생성 미완료, provisioning=true: cloud-init 진행 중 — 둘 다 중지/재시작 차단 대상
+          const notReady = vm.ready === false || !!vm.provisioning;
           const activeAction =
             actionLoading?.key === key ? actionLoading.action : null;
 

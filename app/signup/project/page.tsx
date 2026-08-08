@@ -135,7 +135,7 @@ export default function ProjectSignupPage() {
               placeholder="your@gsm.hs.kr"
               autoComplete="email"
               size="large"
-              helperText="DataGSM 프로젝트 참여자만 가입할 수 있습니다."
+              helperText="EveryGSM에 등록된 프로젝트 참여자여야 가입할 수 있습니다."
               onInput={(value) => {
                 setEmail(value);
                 setProjects([]);

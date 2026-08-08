@@ -143,7 +143,7 @@ export function FirewallTab({
                     {p.description || `포트 ${p.internal_port}`}
                   </Text>
                   <code className="block font-mono text-sm font-bold">
-                    ssh.gsmsv.site:{p.external_port}
+                    service.gsmsv.site:{p.external_port}
                   </code>
                 </div>
                 <IconButton
@@ -151,7 +151,7 @@ export function FirewallTab({
                   size="small"
                   ariaLabel="복사"
                   onClick={() =>
-                    handleCopy(`ssh.gsmsv.site:${p.external_port}`, p.id)
+                    handleCopy(`service.gsmsv.site:${p.external_port}`, p.id)
                   }
                 >
                   {copiedId === p.id ? <CopiedIcon /> : <CopyIcon />}
