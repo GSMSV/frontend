@@ -317,6 +317,7 @@ export interface VmCreateRequest {
   custom_disk?: number;
 }
 
+/** VM 생성 작업이 완료됐을 때 job.result에 담기는 실제 생성 결과 */
 export interface VmCreateResponse {
   success: boolean;
   message: string;
@@ -327,6 +328,23 @@ export interface VmCreateResponse {
   internal_ip: string;
   ssh_user: string;
   ssh_password: string;
+}
+
+export type VmCreationJobStatus = "queued" | "running" | "completed" | "failed";
+
+/** POST /vm/create(202) 및 GET /vm/jobs/{id} 응답 — 실제 생성은 백그라운드 워커가 처리 */
+export interface VmCreationJob {
+  job_id: string;
+  status: VmCreationJobStatus;
+  position: number | null;
+  requested_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  vmid: number | null;
+  node_name: string | null;
+  message: string | null;
+  error_message: string | null;
+  result: VmCreateResponse | null;
 }
 
 export async function getMyVms(): Promise<VmInfo[]> {
@@ -359,13 +377,84 @@ export async function controlVm(node: string, vmid: number, action: string) {
   });
 }
 
+/** VM 생성 요청을 큐에 넣는다. 202를 반환하므로 실제 생성 완료가 아니다. */
 export async function createVm(
   data: VmCreateRequest,
-): Promise<VmCreateResponse> {
-  return api<VmCreateResponse>("/vm/create", {
+): Promise<VmCreationJob> {
+  return api<VmCreationJob>("/vm/create", {
     method: "POST",
     body: data,
   });
+}
+
+export async function getVmCreationJob(
+  jobId: string,
+): Promise<VmCreationJob> {
+  return api<VmCreationJob>(`/vm/jobs/${jobId}`);
+}
+
+/** 폴링 시간 초과 — 작업이 아직 진행 중일 수 있으므로 실패와 구분한다 */
+export class VmCreationPendingError extends ApiError {}
+
+const JOB_POLL_INTERVAL_MS = 2000;
+const JOB_POLL_TIMEOUT_MS = 15 * 60 * 1000; // 앞선 작업이 대기 중일 수 있어 넉넉히
+const JOB_POLL_MAX_CONSECUTIVE_ERRORS = 5;
+
+/**
+ * VM 생성을 요청하고 큐 작업이 끝날 때까지 폴링한다.
+ * - completed: job.result(접속 정보)를 반환
+ * - failed: job.error_message로 ApiError를 던짐
+ */
+export async function createVmAndWait(
+  data: VmCreateRequest,
+  onProgress?: (job: VmCreationJob) => void,
+): Promise<VmCreateResponse> {
+  const queued = await createVm(data);
+  onProgress?.(queued);
+
+  const deadline = Date.now() + JOB_POLL_TIMEOUT_MS;
+  let consecutiveErrors = 0;
+  let job = queued;
+
+  while (job.status === "queued" || job.status === "running") {
+    if (Date.now() > deadline) {
+      throw new VmCreationPendingError(
+        504,
+        "VM 생성이 지연되고 있습니다. 잠시 후 인스턴스 목록에서 상태를 확인해주세요.",
+      );
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, JOB_POLL_INTERVAL_MS));
+
+    try {
+      job = await getVmCreationJob(queued.job_id);
+      consecutiveErrors = 0;
+      onProgress?.(job);
+    } catch (err) {
+      // 인증 만료·작업 소멸은 즉시 중단, 그 외 일시적 오류는 재시도
+      if (err instanceof ApiError && (err.status === 401 || err.status === 404)) {
+        throw err;
+      }
+      consecutiveErrors += 1;
+      if (consecutiveErrors >= JOB_POLL_MAX_CONSECUTIVE_ERRORS) throw err;
+    }
+  }
+
+  if (job.status === "failed") {
+    throw new ApiError(
+      500,
+      job.error_message || "VM 생성에 실패했습니다.",
+    );
+  }
+
+  if (!job.result) {
+    throw new ApiError(
+      500,
+      "VM은 생성됐지만 접속 정보를 불러오지 못했습니다. 인스턴스 목록에서 확인해주세요.",
+    );
+  }
+
+  return job.result;
 }
 
 export async function deleteVm(node: string, vmid: number) {

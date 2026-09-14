@@ -18,7 +18,7 @@ import {
   changePassword,
   controlVm,
   createSnapshot,
-  createVm,
+  createVmAndWait,
   deleteAvatar,
   deleteCustomPort,
   deleteFaqQuestion,
@@ -61,6 +61,7 @@ import {
   type PortInfo,
   type SnapshotInfo,
   type VmCreateRequest,
+  type VmCreationJob,
   type VmInfo,
   type VmPort,
 } from "@/lib/api";
@@ -375,7 +376,13 @@ export function useUpdateVmPurpose() {
 export function useCreateVm() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: VmCreateRequest) => createVm(data),
+    mutationFn: ({
+      data,
+      onProgress,
+    }: {
+      data: VmCreateRequest;
+      onProgress?: (job: VmCreationJob) => void;
+    }) => createVmAndWait(data, onProgress),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.myVms });
       qc.invalidateQueries({ queryKey: queryKeys.allVms });
