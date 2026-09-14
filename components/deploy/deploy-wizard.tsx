@@ -23,6 +23,7 @@ import {
   ApiError,
   type NodeResources,
   type VmCreateResponse,
+  type VmCreationJob,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notification-context";
@@ -113,6 +114,7 @@ export function DeployWizard() {
   const [customDisk, setCustomDisk] = useState(40);
   const [error, setError] = useState("");
   const [result, setResult] = useState<VmCreateResponse | null>(null);
+  const [job, setJob] = useState<VmCreationJob | null>(null);
 
   const nodesResourcesQuery = useNodesResources();
   const createVm = useCreateVm();
@@ -177,18 +179,22 @@ export function DeployWizard() {
     if (submittingRef.current) return;
     submittingRef.current = true;
     setError("");
+    setJob(null);
     try {
       const res = await createVm.mutateAsync({
-        tier: selectedTier as "basic" | "standard" | "project_custom",
-        os: selectedOs as "ubuntu2204",
-        node_name: selectedNode,
-        name: hostname || undefined,
-        purpose: purpose.trim(),
-        ...(isCustomTier && {
-          custom_cores: customCores,
-          custom_memory: customMemory * 1024,
-          custom_disk: customDisk,
-        }),
+        data: {
+          tier: selectedTier as "basic" | "standard" | "project_custom",
+          os: selectedOs as "ubuntu2204",
+          node_name: selectedNode,
+          name: hostname || undefined,
+          purpose: purpose.trim(),
+          ...(isCustomTier && {
+            custom_cores: customCores,
+            custom_memory: customMemory * 1024,
+            custom_disk: customDisk,
+          }),
+        },
+        onProgress: setJob,
       });
       setResult(res);
       addNotification(
@@ -203,9 +209,19 @@ export function DeployWizard() {
       setError(msg);
       addNotification("error", `VM 생성 실패: ${msg}`);
     } finally {
+      setJob(null);
       submittingRef.current = false;
     }
   };
+
+  const progressText = (() => {
+    if (job?.status === "queued") {
+      return job.position && job.position > 1
+        ? `생성 대기 중입니다. 대기열 ${job.position}번째 — 앞선 작업이 끝나면 시작됩니다.`
+        : "생성 대기 중입니다. 곧 시작됩니다.";
+    }
+    return "인스턴스를 생성하고 있습니다. 완료까지 1~2분정도 소요될 수 있어요.";
+  })();
 
   if (result) {
     return (
@@ -499,8 +515,7 @@ export function DeployWizard() {
               <div className="flex items-center gap-2 rounded-xl border border-[var(--zm-color-border-subtle,#e5e7eb)] bg-[var(--zm-color-bg-subtle,#f9fafb)] p-4">
                 <Spinner size="small" />
                 <Text size="sm" tone="muted">
-                  인스턴스를 생성하고 있습니다. 완료까지 1~2분정도 소요될 수
-                  있어요.
+                  {progressText}
                 </Text>
               </div>
             )}
