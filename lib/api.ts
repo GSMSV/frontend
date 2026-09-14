@@ -393,6 +393,9 @@ export async function getVmCreationJob(
   return api<VmCreationJob>(`/vm/jobs/${jobId}`);
 }
 
+/** 폴링 시간 초과 — 작업이 아직 진행 중일 수 있으므로 실패와 구분한다 */
+export class VmCreationPendingError extends ApiError {}
+
 const JOB_POLL_INTERVAL_MS = 2000;
 const JOB_POLL_TIMEOUT_MS = 15 * 60 * 1000; // 앞선 작업이 대기 중일 수 있어 넉넉히
 const JOB_POLL_MAX_CONSECUTIVE_ERRORS = 5;
@@ -415,9 +418,9 @@ export async function createVmAndWait(
 
   while (job.status === "queued" || job.status === "running") {
     if (Date.now() > deadline) {
-      throw new ApiError(
+      throw new VmCreationPendingError(
         504,
-        "VM 생성이 완료되지 않았습니다. 인스턴스 목록에서 상태를 확인해주세요.",
+        "VM 생성이 지연되고 있습니다. 잠시 후 인스턴스 목록에서 상태를 확인해주세요.",
       );
     }
 

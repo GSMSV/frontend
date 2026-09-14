@@ -21,6 +21,7 @@ import {
 
 import {
   ApiError,
+  VmCreationPendingError,
   type NodeResources,
   type VmCreateResponse,
   type VmCreationJob,
@@ -113,6 +114,7 @@ export function DeployWizard() {
   const [customMemory, setCustomMemory] = useState(2);
   const [customDisk, setCustomDisk] = useState(40);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [result, setResult] = useState<VmCreateResponse | null>(null);
   const [job, setJob] = useState<VmCreationJob | null>(null);
 
@@ -179,6 +181,7 @@ export function DeployWizard() {
     if (submittingRef.current) return;
     submittingRef.current = true;
     setError("");
+    setNotice("");
     setJob(null);
     try {
       const res = await createVm.mutateAsync({
@@ -202,6 +205,11 @@ export function DeployWizard() {
         `VM ${res.name || hostname}이(가) 생성되었습니다.`,
       );
     } catch (err) {
+      if (err instanceof VmCreationPendingError) {
+        setNotice(err.detail);
+        addNotification("info", err.detail);
+        return;
+      }
       const msg =
         err instanceof ApiError
           ? err.detail
@@ -538,6 +546,7 @@ export function DeployWizard() {
             </div>
 
             {error && <BottomInfo tone="danger">{error}</BottomInfo>}
+            {notice && <BottomInfo tone="warning">{notice}</BottomInfo>}
           </div>
         </Card>
       )}
@@ -574,6 +583,15 @@ export function DeployWizard() {
               다음
             </Button>
           </div>
+        ) : notice ? (
+          // 작업이 아직 진행 중일 수 있어 재요청 대신 목록 확인으로 유도 (중복 생성 방지)
+          <Button
+            variant="primary"
+            size="large"
+            onClick={() => router.push("/instances")}
+          >
+            인스턴스 목록
+          </Button>
         ) : (
           <Button
             variant="primary"
