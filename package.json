@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "NODE_ENV=test vitest run"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
@@ -25,13 +26,16 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.0",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^22",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "jsdom": "^26.1.0",
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "vitest": "^5.0.2"
   }
 }

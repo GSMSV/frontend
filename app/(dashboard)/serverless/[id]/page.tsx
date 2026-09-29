@@ -103,13 +103,14 @@ export default function ServerlessFunctionPage({
         {active === "code" && (
           <CodeTab func={func} onUpdate={setFunc} />
         )}
-        {active === "triggers" && (
+        <div hidden={active !== "triggers"} aria-hidden={active !== "triggers"}>
           <TriggersTab
             funcId={func.id}
             ownerId={func.ownerId}
             funcName={func.name}
+            active={active === "triggers"}
           />
-        )}
+        </div>
         {active === "env" && <EnvTab func={func} onUpdate={setFunc} />}
         {active === "logs" && <LogsTab funcId={func.id} />}
         {active === "test" && <TestTab funcId={func.id} />}
