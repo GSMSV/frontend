@@ -25,6 +25,11 @@ export interface FunctionTrigger {
   createdAt: string;
 }
 
+/** HTTP 생성 응답에만 포함되며 목록/수정 응답에는 없는 일회성 시크릿. */
+export interface CreatedFunctionTrigger extends FunctionTrigger {
+  secretToken?: string;
+}
+
 export interface ExecutionLog {
   id: string;
   functionId: string;
@@ -129,8 +134,8 @@ export async function createTrigger(
     cronExpr?: string;
     enabled?: boolean;
   },
-): Promise<FunctionTrigger> {
-  return api<FunctionTrigger>(`/serverless/functions/${funcId}/triggers`, {
+): Promise<CreatedFunctionTrigger> {
+  return api<CreatedFunctionTrigger>(`/serverless/functions/${funcId}/triggers`, {
     method: "POST",
     body,
   });

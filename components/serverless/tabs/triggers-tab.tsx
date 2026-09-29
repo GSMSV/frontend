@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import {
   Badge,
+  BottomInfo,
   Button,
   Heading,
   IconButton,
@@ -12,8 +13,6 @@ import {
   Text,
   TextField,
 } from "@zaemoru/react";
-
-import { ToggleSwitch } from "@/components/ui/toggle-switch";
 
 import {
   createTrigger,
@@ -31,30 +30,73 @@ interface TriggersTabProps {
   funcName: string;
 }
 
-export function TriggersTab({ funcId, ownerId, funcName }: TriggersTabProps) {
+export function TriggersTab(props: TriggersTabProps) {
+  return <TriggersTabContent key={props.funcId} {...props} />;
+}
+
+function TriggersTabContent({ funcId, ownerId, funcName }: TriggersTabProps) {
   const [triggers, setTriggers] = useState<FunctionTrigger[]>([]);
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<"http" | "cron">("http");
   const [httpMethod, setHttpMethod] = useState("ANY");
   const [cronExpr, setCronExpr] = useState("*/5 * * * *");
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [oneTimeToken, setOneTimeToken] = useState<string | null>(null);
+  const [tokenNotice, setTokenNotice] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState(false);
 
   useEffect(() => {
-    getTriggers(funcId).then(setTriggers);
+    let active = true;
+    getTriggers(funcId)
+      .then((items) => {
+        if (active) setTriggers((prev) => [
+          ...items,
+          ...prev.filter((trigger) => !items.some((item) => item.id === trigger.id)),
+        ]);
+      })
+      .catch(() => { if (active) setListError(true); })
+      .finally(() => { if (active) setListLoading(false); });
+    return () => { active = false; };
   }, [funcId]);
 
   const handleCreate = async () => {
+    if (creating || oneTimeToken) return;
     setCreating(true);
+    setCreateError("");
     try {
-      const trigger = await createTrigger(funcId, {
+      const { secretToken, ...trigger } = await createTrigger(funcId, {
         type,
         httpMethod: type === "http" ? httpMethod : undefined,
         cronExpr: type === "cron" ? cronExpr : undefined,
       });
       setTriggers((prev) => [...prev, trigger]);
       setOpen(false);
+      if (trigger.type === "http") {
+        if (secretToken) {
+          setOneTimeToken(secretToken);
+          setTokenNotice("");
+        } else {
+          setTokenNotice("HTTP 트리거가 생성됐지만 토큰이 응답에 없습니다. 서버 버전을 확인하세요. 이 화면에서 토큰을 다시 불러올 수 없습니다.");
+        }
+      }
+    } catch {
+      setCreateError("트리거를 생성하지 못했습니다. 다시 시도해주세요.");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!oneTimeToken) return;
+    setCopyStatus("");
+    try {
+      await navigator.clipboard.writeText(oneTimeToken);
+      setCopyStatus("복사됨");
+    } catch {
+      setCopyStatus("복사하지 못했습니다. 토큰을 직접 선택해 안전한 곳에 저장해주세요.");
     }
   };
 
@@ -72,7 +114,7 @@ export function TriggersTab({ funcId, ownerId, funcName }: TriggersTabProps) {
         <Text size="sm" weight="medium">
           트리거 목록
         </Text>
-        <Button variant="primary" size="small" onClick={() => setOpen(true)}>
+        <Button variant="primary" size="small" disabled={!!oneTimeToken || creating} onClick={() => setOpen(true)}>
           <span className="inline-flex items-center gap-1.5">
             <PlusIcon size={14} />
             트리거 추가
@@ -132,6 +174,7 @@ export function TriggersTab({ funcId, ownerId, funcName }: TriggersTabProps) {
             </div>
           )}
 
+          {createError && <div role="alert" className="text-sm text-red-600">{createError}</div>}
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setOpen(false)}>
               취소
@@ -148,7 +191,26 @@ export function TriggersTab({ funcId, ownerId, funcName }: TriggersTabProps) {
         </div>
       </Modal>
 
-      {triggers.length === 0 ? (
+      {oneTimeToken && (
+        <section aria-label="새 HTTP 트리거 토큰" className="flex min-w-0 flex-col gap-3 rounded-lg border border-[var(--zm-color-border-subtle,#e5e7eb)] p-4">
+          <Text size="sm" weight="medium">새 HTTP 트리거 시크릿 토큰</Text>
+          <Text size="sm">이 토큰은 생성 직후 한 번만 표시됩니다. 새로고침하거나 이 탭을 벗어나면 다시 볼 수 없습니다. 안전한 곳에 저장하세요.</Text>
+          <code className="block select-all break-all rounded bg-[var(--zm-color-bg-subtle,#f3f4f6)] p-3 text-sm">{oneTimeToken}</code>
+          <Text size="sm" tone="muted">호출 시 X-Secret-Token 헤더에 넣으세요. URL에는 넣지 마세요.</Text>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="small" onClick={handleCopy}>토큰 복사</Button>
+            <Button variant="secondary" size="small" onClick={() => { setOneTimeToken(null); setCopyStatus(""); }}>저장했어요 · 닫기</Button>
+          </div>
+          {copyStatus && <div role="status" className="text-sm">{copyStatus}</div>}
+        </section>
+      )}
+      {tokenNotice && <BottomInfo tone="danger">{tokenNotice}</BottomInfo>}
+
+      {listLoading ? (
+        <Text size="sm" tone="muted">트리거 목록을 불러오는 중...</Text>
+      ) : listError ? (
+        <div role="alert"><BottomInfo tone="danger">트리거 목록을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.</BottomInfo></div>
+      ) : triggers.length === 0 ? (
         <Text size="sm" tone="muted">
           트리거가 없습니다. 트리거를 추가하면 함수가 자동으로 실행됩니다.
         </Text>

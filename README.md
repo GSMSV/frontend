@@ -97,10 +97,15 @@ pnpm dev
 커밋: `type: 한국어 설명` (feat/fix/update/add/docs/style/refactor/test/perf/merge), 마침표 없음
 브랜치: `develop` 분기 → feature → PR → develop → main. `main` 직접 push 금지
 
+## HTTP 트리거 시크릿
+
+새 HTTP 트리거의 시크릿 토큰은 생성 응답에서만 한 번 표시됩니다. 화면을 벗어나기 전에 안전한 곳에 저장하고, 함수 호출 시 `X-Secret-Token` 헤더로 전달하세요. 목록 조회나 새로고침으로는 다시 확인할 수 없습니다. Cron 트리거에는 토큰이 없습니다. 서버의 토큰 발급 기능은 백엔드 [#173](https://github.com/GSMSV/GSM-SV/pull/173)에 의존합니다.
+
 ## 빌드
 
 ```bash
 pnpm build   # 프로덕션 빌드
 pnpm start   # 프로덕션 서버
 pnpm lint    # ESLint
+pnpm test    # 트리거 UI 회귀 테스트
 ```
