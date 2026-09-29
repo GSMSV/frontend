@@ -66,6 +66,25 @@ describe("new HTTP trigger secret", () => {
     expect(screen.getByRole("button", { name: "트리거 추가" }).hasAttribute("disabled")).toBe(false);
   });
 
+  it("focuses the token panel after closing the creation modal without announcing the secret in a live region", async () => {
+    await createHttp();
+    const panel = await screen.findByRole("region", { name: "새 HTTP 트리거 토큰" });
+    await waitFor(() => expect(document.activeElement).toBe(panel));
+    expect(panel.querySelector("code")?.textContent).toBe("only-once-token");
+    expect(Array.from(panel.querySelectorAll("[aria-live], [role=status], [role=alert]"), (node) => node.textContent).join(" ")).not.toContain("only-once-token");
+  });
+
+  it("blocks cancelling or closing the modal while creation is pending and warns about page navigation", async () => {
+    createTrigger.mockReturnValueOnce(new Promise(() => {}));
+    render(<TriggersTab funcId="func-1" ownerId={7} funcName="my-function" />);
+    fireEvent.click(screen.getByRole("button", { name: "트리거 추가" }));
+    fireEvent.click(screen.getByRole("button", { name: "추가" }));
+    expect(await screen.findByText(/응답 전.*페이지를 벗어나거나 닫으면.*토큰을 잃을 수/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    fireEvent.click(screen.getByRole("button", { name: "모달 닫기" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
   it("keeps a created trigger if an earlier list request finishes later", async () => {
     let finishList!: (items: FunctionTrigger[]) => void;
     getTriggers.mockReturnValueOnce(new Promise<FunctionTrigger[]>((resolve) => { finishList = resolve; }));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Badge,
@@ -28,13 +28,14 @@ interface TriggersTabProps {
   funcId: string;
   ownerId: number;
   funcName: string;
+  active?: boolean;
 }
 
 export function TriggersTab(props: TriggersTabProps) {
   return <TriggersTabContent key={props.funcId} {...props} />;
 }
 
-function TriggersTabContent({ funcId, ownerId, funcName }: TriggersTabProps) {
+function TriggersTabContent({ funcId, ownerId, funcName, active = true }: TriggersTabProps) {
   const [triggers, setTriggers] = useState<FunctionTrigger[]>([]);
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<"http" | "cron">("http");
@@ -47,6 +48,11 @@ function TriggersTabContent({ funcId, ownerId, funcName }: TriggersTabProps) {
   const [copyStatus, setCopyStatus] = useState("");
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState(false);
+  const tokenPanelRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (active && oneTimeToken && !open) tokenPanelRef.current?.focus();
+  }, [active, oneTimeToken, open]);
 
   useEffect(() => {
     let active = true;
@@ -122,7 +128,7 @@ function TriggersTabContent({ funcId, ownerId, funcName }: TriggersTabProps) {
         </Button>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)}>
+      <Modal open={open && active} onClose={() => { if (!creating) setOpen(false); }}>
         <div className="flex flex-col gap-4 p-4">
           <Heading level="3" size="md">
             트리거 추가
@@ -174,9 +180,12 @@ function TriggersTabContent({ funcId, ownerId, funcName }: TriggersTabProps) {
             </div>
           )}
 
+          {creating && (
+            <Text size="sm">응답 전 페이지를 벗어나거나 닫으면 일회성 토큰을 잃을 수 있습니다. 생성이 끝날 때까지 기다려주세요.</Text>
+          )}
           {createError && <div role="alert" className="text-sm text-red-600">{createError}</div>}
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setOpen(false)}>
+            <Button variant="secondary" disabled={creating} onClick={() => { if (!creating) setOpen(false); }}>
               취소
             </Button>
             <Button
@@ -192,9 +201,9 @@ function TriggersTabContent({ funcId, ownerId, funcName }: TriggersTabProps) {
       </Modal>
 
       {oneTimeToken && (
-        <section aria-label="새 HTTP 트리거 토큰" className="flex min-w-0 flex-col gap-3 rounded-lg border border-[var(--zm-color-border-subtle,#e5e7eb)] p-4">
+        <section ref={tokenPanelRef} tabIndex={-1} aria-label="새 HTTP 트리거 토큰" className="flex min-w-0 flex-col gap-3 rounded-lg border border-[var(--zm-color-border-subtle,#e5e7eb)] p-4">
           <Text size="sm" weight="medium">새 HTTP 트리거 시크릿 토큰</Text>
-          <Text size="sm">이 토큰은 생성 직후 한 번만 표시됩니다. 새로고침하거나 이 탭을 벗어나면 다시 볼 수 없습니다. 안전한 곳에 저장하세요.</Text>
+          <Text size="sm">이 토큰은 생성 직후 한 번만 표시됩니다. 페이지를 벗어나거나 새로고침하면 다시 볼 수 없습니다. 같은 함수의 다른 탭으로 이동한 경우 트리거 탭으로 돌아와 저장하세요.</Text>
           <code className="block select-all break-all rounded bg-[var(--zm-color-bg-subtle,#f3f4f6)] p-3 text-sm">{oneTimeToken}</code>
           <Text size="sm" tone="muted">호출 시 X-Secret-Token 헤더에 넣으세요. URL에는 넣지 마세요.</Text>
           <div className="flex flex-wrap items-center gap-2">
